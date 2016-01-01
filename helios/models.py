@@ -827,29 +827,13 @@ class Election(HeliosModel):
 
   @property
   def pretty_result(self):
-    if not self.result:
-      return None
-
-    # get the winners
-    winners = self.winners
-
-    raw_result = self.result
-    prettified_result = []
-
-    # loop through questions
-    for i in range(len(self.questions)):
-      q = self.questions[i]
-      pretty_question = []
-
-      # go through answers
-      for j in range(len(q['answers'])):
-        a = q['answers'][j]
-        count = raw_result[i][j]
-        pretty_question.append({'answer': a, 'count': count, 'winner': (j in winners[i])})
-
-      prettified_result.append({'question': q['short_name'], 'answers': pretty_question})
-
-    return prettified_result
+    from helios.counter import Counter
+    def hash(k):
+      return ",".join([str(x) for x in k])
+    results = []
+    results = map(hash, self.result_choices)
+    results = Counter(results)
+    return dict(results)
 
 class ElectionLog(models.Model):
   """

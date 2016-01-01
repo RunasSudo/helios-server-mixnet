@@ -160,14 +160,16 @@ Once you do this, the tally will visible to you, the administrator, only.
 {% endif %}
 
 <h3 class="highlight-box">Tally</h3>
-{% for question in election.pretty_result %}
-<b><span style="font-size:0.8em;">Question #{{forloop.counter}}</span><br />{{question.question}}</b><br />
-<table class="pretty" style="width: auto;">
-{% for answer in question.answers %}
-<tr><td style="padding-right:80px;{% if answer.winner %}font-weight:bold;{% endif %}">{{answer.answer}}</td><td align="right" style="{% if answer.winner %}font-weight:bold;{% endif %}">{{answer.count}}</td></tr>
+<table class="pretty" style="width: 100%;">
+  <thead>
+    <tr><td>Preference Flow</td><td>Votes</td></tr>
+  </thead>
+  <tbody>
+{% for q,b in election.pretty_result.items %}
+    <tr><td style="padding-right: 80px;">{{ q }}</td><td align="right">{{ b }}</td></tr>
 {% endfor %}
+  </tbody>
 </table>
-{% endfor %}
 
 {% else %}
 
