@@ -46,7 +46,7 @@ from hashlib import sha256
 
 # Use configuration parameters from params.py
 import params
-import multiprocessing
+import billiard
 
 from BitStream import BitStream
 
@@ -336,7 +336,7 @@ class ShufflingProof:
         # original collection into proof._collections[i])
 
         # generate new mappings in parallel
-        pool = multiprocessing.Pool()
+        pool = billiard.Pool()
         async_params = [original_collection] * security_parameter
         generate_mappings_pool = pool.map_async(new_collection_mapping, async_params)
         for new_mapping in generate_mappings_pool.get(99999999):

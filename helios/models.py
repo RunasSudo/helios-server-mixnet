@@ -162,7 +162,7 @@ class Election(HeliosModel):
   # v3 and prior have a datatype of "legacy/Election"
   # v3.1 will still use legacy/Election
   # later versions, at some point will upgrade to "2011/01/Election"
-  datatype = models.CharField(max_length=250, null=False, default="legacy/Election")
+  datatype = models.CharField(max_length=250, null=False, default="phoebus/Election")
 
   short_name = models.CharField(max_length=100)
   name = models.CharField(max_length=250)

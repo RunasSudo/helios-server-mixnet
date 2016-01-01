@@ -49,7 +49,7 @@ from Crypto.Random.random import StrongRandom
 
 # Use configuration parameters from params.py
 import params
-import multiprocessing
+import billiard
 
 from CiphertextCollection import CiphertextCollection
 from .CiphertextReencryptionInfo import CiphertextReencryptionInfo
@@ -453,7 +453,7 @@ class CiphertextCollectionMapping:
 
         # Calculate C->B element by element, in the order of the element's
         # index in A.
-        pool = multiprocessing.Pool()
+        pool = billiard.Pool()
         async_params = [(self, result, other_mapping, index) for index in range(0, length)]
         results = pool.map_async(calculate_subtraction, async_params)
         for reencryption, cindex, bindex in results.get(99999999):
