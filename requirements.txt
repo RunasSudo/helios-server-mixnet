@@ -3,7 +3,7 @@ anyjson==0.3.3
 celery==3.1.18
 django-celery==3.1.16
 django-picklefield==0.3.0
-kombu==3.0.26
+kombu==3.0.32
 psycopg2==2.6.1
 pyparsing==1.5.7
 python-dateutil>=1.5
@@ -22,3 +22,4 @@ boto==2.27.0
 django-ses==0.6.0
 validate_email==1.2
 oauth2client==1.2
+pycrypto==2.6.1
