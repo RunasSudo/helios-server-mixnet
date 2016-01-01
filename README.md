@@ -2,7 +2,13 @@
 
 Helios is an end-to-end verifiable voting system.
 
-This is a fork of Ben Adida's Helios server, with support for mixnets using code pulled in from [Zeus](https://github.com/grnet/zeus), but without the other changes made in Zeus.
+This is a fork of Ben Adida's Helios server, with support for mixnets using code pulled in from [Zeus](https://github.com/grnet/zeus), but without the other changes made in Zeus, and with some other minor changes.
+
+## Features
+
+* This fork produces a tally of the ballots cast, like Zeus. This allows it to be used in voting systems other than approval voting (which is supported by Helios), since the vote tally can be fed to any other system that actually produces the election results. An interface (but no counting) for STV is implemented.
+* Reddit authentication backend
+* Improved support for password authentication
 
 ## Licence
 
