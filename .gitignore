@@ -6,3 +6,4 @@ media/*
 venv
 celerybeat-*
 env.sh
+local_settings.py
