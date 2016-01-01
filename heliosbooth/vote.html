@@ -38,7 +38,6 @@
 <script language="javascript">
 // utils
 BOOTH = {};
-
 BOOTH.setup_templates = function() {
     if (BOOTH.templates_setup_p)
         return;
@@ -48,6 +47,8 @@ BOOTH.setup_templates = function() {
     $('#header').setTemplateURL("templates/header.html" + cache_bust);
     $('#election_div').setTemplateURL("templates/election.html" + cache_bust);
     $('#question_div').setTemplateURL("templates/question.html" + cache_bust);
+    $('#question_stv_div').setTemplateURL("templates/question_stv.html" + cache_bust);
+    $('#confirm_div').setTemplateURL("templates/confirm.html" + cache_bust);
     $('#seal_div').setTemplateURL("templates/seal.html" + cache_bust);
     $('#audit_div').setTemplateURL("templates/audit.html" + cache_bust);
     $('#footer').setTemplateURL("templates/footer.html" + cache_bust);
@@ -119,7 +120,7 @@ BOOTH.setup_workers = function(election_raw_json) {
       BOOTH.workers = [];
       $(BOOTH.election.questions).each(function(q_num, q) {
         BOOTH.encrypted_answers[q_num] = null;
-        var new_worker = new window.Worker("boothworker.js");
+        var new_worker = new window.Worker("boothworker.js?" + (new Date()).getTime());
         new_worker.postMessage({
           'type': 'setup',
           'election' : election_raw_json,
@@ -224,10 +225,37 @@ BOOTH.launch_async_encryption_answer = function(question_num) {
 
 // check if the current question is ok
 BOOTH.validate_question = function(question_num) {
-    // check if enough answers are checked
-    if (BOOTH.ballot.answers[question_num].length < BOOTH.election.questions[question_num].min) {
-        alert('You need to select at least ' + BOOTH.election.questions[question_num].min + ' answer(s).');
+  if (BOOTH.election.questions[question_num].tally_type == "stv") {
+      var answer = BOOTH.ballot.answers[question_num];
+      var question = BOOTH.election.questions[question_num];
+
+      if (answer.length > question.answers.length) {
+        alert('You need to select at most ' + BOOTH.election.questions[question_num].answers.length + ' answer(s).');
         return false;
+      }
+    
+      if (_.intersect(answer[0], answer[0]).length != answer[0].length) {
+        alert('You cannot select the same choice more than once');
+        return false;
+      }
+
+      if (_.filter(answer[0], function(choice){
+        if (choice >= question.answers.length) {
+          return false;
+        }
+        return true;
+      }).length < answer[0].length) {
+    
+      alert('Invalid selection');
+      return false;
+    };
+
+    } else {
+      // check if enough answers are checked
+      if (BOOTH.ballot.answers[question_num].length < BOOTH.election.questions[question_num].min) {
+          alert('You need to select at least ' + BOOTH.election.questions[question_num].min + ' answer(s).');
+          return false;
+      }
     }
 
     // if we need to launch the worker, let's do it
@@ -243,6 +271,10 @@ BOOTH.validate_question = function(question_num) {
 };
 
 BOOTH.validate_and_confirm = function(question_num) {
+  if (BOOTH.election.questions[question_num].tally_type == "stv") {
+      BOOTH.stv_updated(question_num, $("#stv_answer").val());
+  }
+
   if (BOOTH.validate_question(question_num)) {
       BOOTH.seal_ballot();
   }
@@ -286,15 +318,25 @@ BOOTH.show_question = function(question_num) {
   BOOTH.started_p = true;
 
   // the first time we hit the last question, we enable the review all button
-  if (question_num == BOOTH.election.questions.length -1)
+  if (question_num == BOOTH.election.questions.length -1) {
     BOOTH.all_questions_seen = true;
+  }
 
   BOOTH.show_progress('1');
-  BOOTH.show($('#question_div')).processTemplate({'question_num' : question_num,
-                      'last_question_num' : BOOTH.election.questions.length - 1,
-                      'question' : BOOTH.election.questions[question_num], 'show_reviewall' : BOOTH.all_questions_seen,
+  
+  if (BOOTH.election.workflow_type == "mixnet") {
+    BOOTH.show($('#question_stv_div')).processTemplate({'question_num' : question_num,
+                        'last_question_num' : BOOTH.election.questions.length - 1,
+                        'question' : BOOTH.election.questions[question_num], 'show_reviewall' : BOOTH.all_questions_seen,
 		      'answer_ordering': BOOTH.election.question_answer_orderings[question_num]
-                });
+                  });
+  } else {
+    BOOTH.show($('#question_div')).processTemplate({'question_num' : question_num,
+                        'last_question_num' : BOOTH.election.questions.length - 1,
+                        'question' : BOOTH.election.questions[question_num], 'show_reviewall' : BOOTH.all_questions_seen,
+		      'answer_ordering': BOOTH.election.question_answer_orderings[question_num]
+                  });
+  }
 
   // fake clicking through the answers, to trigger the disabling if need be
   // first we remove the answers array
@@ -304,7 +346,11 @@ BOOTH.show_question = function(question_num) {
   // we should not set the dirty bit here, so we save it away
   var old_dirty = BOOTH.dirty[question_num];
   $(answer_array).each(function(i, ans) {
-    BOOTH.click_checkbox_script(question_num, ans, true);
+    if (BOOTH.election.workflow_type != "mixnet") {
+      BOOTH.click_checkbox_script(question_num, ans, true);
+    } else {  
+      $("#question_stv_div input#stv_answer").val(ans.join(","));
+    }
   });
   BOOTH.dirty[question_num] = old_dirty;
 };
@@ -314,6 +360,19 @@ BOOTH.show_question = function(question_num) {
 BOOTH.click_checkbox_script = function(question_num, answer_num) {
   document.forms['answer_form']['answer_'+question_num+'_'+answer_num].click();
 };
+
+BOOTH.stv_updated = function(question_num, answer) {
+  BOOTH.dirty[question_num] = true;
+  answer = $.trim(answer).toString();
+
+  if (!answer || answer == "") { 
+    BOOTH.ballot.answers[question_num] = [];
+  } else {
+    answer = answer.toString().split(",");
+    answer = _(answer).map(function(e){ return parseInt(e)});
+    BOOTH.ballot.answers[question_num] = [answer];
+  }
+}
 
 BOOTH.click_checkbox = function(question_num, answer_num, checked_p) {
   // keep track of dirty answers that need encrypting
@@ -402,7 +461,6 @@ BOOTH.show_progress = function(step_num) {
 
 BOOTH.so_lets_go = function () {
     BOOTH.hide_progress();
-
     BOOTH.setup_templates();
 
     // election URL
@@ -441,6 +499,11 @@ $(document).ready(function() {
     BigInt.setup(BOOTH.so_lets_go, BOOTH.nojava);
 });
 
+BOOTH.show_confirm = function() {
+    // process the answers
+    var choices = BALLOT.pretty_choices(BOOTH.election, BOOTH.ballot);
+    BOOTH.show($('#confirm_div')).processTemplate({'questions' : BOOTH.election.questions, 'choices' : choices});
+};
 
 BOOTH.check_encryption_status = function() {
   var progress = BOOTH.progress.progress();
@@ -452,7 +515,8 @@ BOOTH.check_encryption_status = function() {
 
 BOOTH._after_ballot_encryption = function() {
     // if already serialized, use that, otherwise serialize
-    BOOTH.encrypted_vote_json = BOOTH.encrypted_ballot_serialized || JSON.stringify(BOOTH.encrypted_ballot.toJSONObject());
+    BOOTH.encrypted_vote_json = BOOTH.encrypted_ballot_serialized || 
+        JSON.stringify(BOOTH.encrypted_ballot.toJSONObject());
 
     var do_hash = function() {
        BOOTH.encrypted_ballot_hash = b64_sha256(BOOTH.encrypted_vote_json); // BOOTH.encrypted_ballot.get_hash();
@@ -592,6 +656,11 @@ BOOTH.do_done = function() {
   BOOTH.started_p = false;
 };
 
+
+window.setTimeout(function(){
+// do some js testing here
+}, 500);
+
 </script>
 <div id="page">
   <div id="progress_div" style="display:none; width: 500px; margin:auto;">
@@ -615,6 +684,12 @@ BOOTH.do_done = function() {
   </div>
 
   <div id="question_div" class="panel">
+  </div>
+
+  <div id="question_stv_div" class="panel">
+  </div>
+
+  <div id="confirm_div" class="panel">
   </div>
 
   <div id="processing_div" class="panel" style="display:none;">

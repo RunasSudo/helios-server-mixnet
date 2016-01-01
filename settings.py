@@ -53,11 +53,11 @@ if get_from_env('DATABASE_URL', None):
 # although not all choices may be available on all operating systems.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
-TIME_ZONE = 'America/Los_Angeles'
+TIME_ZONE = 'Europe/Athens'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'el-gr'
 
 SITE_ID = 1
 
@@ -274,3 +274,17 @@ djcelery.setup_loader()
 # for testing
 TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner'
 # this effectively does CELERY_ALWAYS_EAGER = True
+
+CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+
+BOOTH_STATIC_PATH = ROOT_PATH + '/phoebus_ui/static/phoebus/booth/'
+VERIFIER_STATIC_PATH = ROOT_PATH + '/phoebus_ui/static/phoebus/verifier/'
+
+BOOTH_STATIC_PATH = ROOT_PATH + '/heliosbooth/'
+VERIFIER_STATIC_PATH = ROOT_PATH + '/heliosverifier/'
+
+# useful trick for custom settings
+try:
+    from local_settings import *
+except ImportError:
+    pass

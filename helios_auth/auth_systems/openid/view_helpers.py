@@ -84,7 +84,7 @@ def start_openid(session, openid_url, trust_root, return_to):
         ax_request.add(ax.AttrInfo(v, required=True))
 
     auth_request.addExtension(ax_request)
-                
+
     # Compute the trust root and return URL values to build the
     # redirect information.
     # trust_root = util.getViewURL(request, startOpenID)
