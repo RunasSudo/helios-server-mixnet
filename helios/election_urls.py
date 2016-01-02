@@ -89,4 +89,9 @@ urlpatterns = patterns('',
     (r'^/ballots/(?P<voter_uuid>[^/]+)/all$', voter_votes),
     (r'^/ballots/(?P<voter_uuid>[^/]+)/last$', voter_last_vote),
 
+    # mixnet proofs
+    (r'^/mixnets$', mixnets_num),
+    (r'^/mixnets/(?P<mixnet_index>[^/]+)/answers$', mixnets_answers),
+    (r'^/mixnets/(?P<mixnet_index>[^/]+)/proof$', mixnets_proof),
+
 )

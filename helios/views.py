@@ -43,6 +43,8 @@ from models import *
 
 import forms, signals
 
+import json
+
 # Parameters for everything
 ELGAMAL_PARAMS = elgamal.Cryptosystem()
 
@@ -1448,3 +1450,25 @@ def ballot_list(request, election):
   # we explicitly cast this to a short cast vote
   return [v.last_cast_vote().ld_object.short.toDict(complete=True) for v in voters]
 
+##
+## mixnet proofs
+##
+
+@election_view()
+@return_json
+def mixnets_num(request, election):
+  return election.mixnets.filter().count()
+
+@election_view()
+@return_json
+def mixnets_answers(request, election, mixnet_index):
+  mixnet = election.mixnets.filter()[int(mixnet_index)]
+  mixed_answers = mixnet.mixed_answers.filter()[0] # TODO: Deal with multiple questions
+  return mixed_answers.mixed_answers.toJSONDict()
+
+@election_view()
+@return_json
+def mixnets_proof(request, election, mixnet_index):
+  mixnet = election.mixnets.filter()[int(mixnet_index)]
+  mixed_answers = mixnet.mixed_answers.filter()[0] # TODO: Deal with multiple questions
+  return json.loads(mixed_answers.shuffling_proof)
