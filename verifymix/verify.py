@@ -122,3 +122,5 @@ with statusCheck("Verifying decryption proofs"):
 		
 		if not AT == BBMC:
 			raise VerificationException("alpha^t != B(beta/m)^c (mod p)")
+
+print("The election has passed validation, however this script does not perform all possible checks, so the legitimacy of the result cannot be guaranteed.")
