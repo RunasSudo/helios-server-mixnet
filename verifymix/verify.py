@@ -25,10 +25,13 @@ from mixnet.PrivateKey import PrivateKey
 from mixnet.PublicKey import PublicKey
 from mixnet.ShufflingProof import ShufflingProof
 
-import json, sys, urllib2
+import itertools, json, sys, urllib2
 
 electionUrl = sys.argv[1].rstrip("/")
 NUM_BITS = 2048 # TODO: Actually detect this
+
+class VerificationException(Exception):
+	pass
 
 class statusCheck:
 	def __init__(self, status):
@@ -55,6 +58,9 @@ with statusCheck("Downloading election data"):
 		ballot = json.load(urllib2.urlopen(electionUrl + "/ballots/" + ballotInfo["voter_uuid"] + "/last"))
 		ballots.append(ballot)
 	
+	# Results
+	results = json.load(urllib2.urlopen(electionUrl + "/result"))
+	
 	# Mixes & Proofs
 	mixnets = []
 	numMixnets = json.load(urllib2.urlopen(electionUrl + "/mixnets"))
@@ -63,7 +69,11 @@ with statusCheck("Downloading election data"):
 		shufflingProof = json.load(urllib2.urlopen(electionUrl + "/mixnets/" + str(i) + "/proof"))
 		mixnets.append((mixedAnswers, shufflingProof))
 	
-	assert(numMixnets == 1)
+	assert(numMixnets == 1) # TODO: Multiple mixnets
+	
+	# Trustees
+	trustees = json.load(urllib2.urlopen(electionUrl + "/trustees"))
+	assert(len(trustees) == 1) # TODO: Multiple trustees
 
 with statusCheck("Verifying mix"):
 	proof = ShufflingProof.from_dict(mixnets[0][1], pk, NUM_BITS)
@@ -90,4 +100,25 @@ with statusCheck("Verifying mix"):
 	proof._generate_challenge = _generate_challenge
 	
 	if not proof.verify(orig, shuf):
-		raise Exception()
+		raise VerificationException("Shuffle failed to prove")
+
+with statusCheck("Verifying decryption proofs"):
+	for ballot, result, factor, proof in itertools.izip(mixedAnswers["answers"], results[0], trustees[0]["decryption_factors"][0], trustees[0]["decryption_proofs"][0]):
+		# TODO: Check the factors
+		
+		C = long(proof["challenge"])
+		T = long(proof["response"])
+		P = cryptosystem.get_prime()
+		
+		GT = pow(cryptosystem.get_generator(), T, P)
+		AYC = (long(proof["commitment"]["A"]) * pow(pk._key, C, P)) % P
+		if not GT == AYC:
+			raise VerificationException("g^t != Ay^c (mod p)")
+		
+		
+		AT = pow(long(ballot["choice"]["alpha"]), T, P)
+		BM = (long(ballot["choice"]["beta"]) * pow(result + 1, P - 2, P)) % P
+		BBMC = (long(proof["commitment"]["B"]) * pow(BM, C, P)) % P
+		
+		if not AT == BBMC:
+			raise VerificationException("alpha^t != B(beta/m)^c (mod p)")
