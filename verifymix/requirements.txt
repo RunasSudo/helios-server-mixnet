@@ -1,0 +1,2 @@
+billiard==3.3.0.22
+pycrypto==2.6.1
