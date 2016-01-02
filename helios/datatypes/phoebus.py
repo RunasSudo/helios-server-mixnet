@@ -71,6 +71,21 @@ class EncryptedVoteWithRandomness(LegacyObject):
                          arrayOf('phoebus/EncryptedAnswerWithRandomness')}
 
 
+class Voter(LegacyObject):
+    FIELDS = ['election_uuid', 'uuid', 'voter_type', 'voter_id_hash', 'name']
+
+    ALIASED_VOTER_FIELDS = ['election_uuid', 'uuid', 'alias']
+
+    def toDict(self, complete=False):
+        """
+        depending on whether the voter is aliased, use different fields
+        """
+        if self.wrapped_obj.alias != None:
+            return super(Voter, self).toDict(self.ALIASED_VOTER_FIELDS, complete = complete)
+        else:
+            return super(Voter,self).toDict(complete = complete)
+
+
 class EncryptedAnswer(LegacyObject):
     WRAPPED_OBJ_CLASS = mixnet.EncryptedAnswer
     FIELDS = ['choices', 'encryption_proof']
