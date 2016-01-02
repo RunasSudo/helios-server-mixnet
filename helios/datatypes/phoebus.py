@@ -28,6 +28,16 @@ class CastVote(LegacyObject):
         return self.instantiate(self.wrapped_obj, datatype='legacy/ShortCastVote')
 
 
+class Trustee(LegacyObject):
+    FIELDS = ['uuid', 'public_key', 'public_key_hash', 'pok', 'decryption_factors', 'decryption_proofs', 'email']
+
+    STRUCTURED_FIELDS = {
+        'public_key' : 'legacy/EGPublicKey',
+        'pok': 'legacy/DLogProof',
+        'decryption_factors': arrayOf(arrayOf('core/BigInteger')),
+        'decryption_proofs' : arrayOf(arrayOf('legacy/EGZKProof'))}
+
+
 class Election(LegacyObject):
     WRAPPED_OBJ_CLASS = models.Election
     FIELDS = ['uuid', 'questions', 'name', 'short_name', 'description',
