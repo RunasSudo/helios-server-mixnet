@@ -7,21 +7,22 @@
 ```
 virtualenv venv
 ```
-* Activate virtual environment:
+* Activate the virtual environment:
 ```
 source venv/bin/activate
 ```
-* Install requirements:
+* Install the requirements:
 ```
 pip install -r requirements.txt
 ```
-* Reset database:
+* Reset the database:
 ```
 ./reset.sh
 ```
 
 # Usage
-* Start server:
+* Ensure the virtual environment is activated, as above.
+* Start the server:
 ```
 python manage.py runserver
 ```
@@ -29,6 +30,7 @@ python manage.py runserver
 ```
 python manage.py celeryd -E -B --beat --concurrency=1
 ```
+* The `run.sh` script will execute these automatically, and also launch a dummy SMTP server on port 2525 to log errors.
 
 # Authentication methods
 

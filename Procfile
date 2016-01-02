@@ -1,1 +1,1 @@
-web: ./run.sh
+web: ./runHeroku.sh
