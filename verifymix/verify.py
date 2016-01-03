@@ -25,7 +25,7 @@ from mixnet.PrivateKey import PrivateKey
 from mixnet.PublicKey import PublicKey
 from mixnet.ShufflingProof import ShufflingProof
 
-import itertools, json, sys, urllib2
+import hashlib, itertools, json, sys, urllib2
 
 electionUrl = sys.argv[1].rstrip("/")
 NUM_BITS = 2048 # TODO: Actually detect this
@@ -94,14 +94,26 @@ with statusCheck("Verifying mix"):
 		
 		shuf.add_ciphertext(ciphertext)
 	
+	# Check the challenge ourselves to provide a more informative error message
+	expected_challenge = proof._generate_challenge(orig, shuf)
+	if proof._challenge != expected_challenge:
+		raise VerificationException("Challenge is wrong")
+	
+	# Do the maths
 	if not proof.verify(orig, shuf):
 		raise VerificationException("Shuffle failed to prove")
 
 with statusCheck("Verifying decryption proofs"):
 	for ballot, result, factor, proof in itertools.izip(mixedAnswers["answers"], results[0], trustees[0]["decryption_factors"][0], trustees[0]["decryption_proofs"][0]):
-		# TODO: Check the factors
+		# TODO: Check the factors, whatever those are...
 		
+		# Check the challenge
 		C = long(proof["challenge"])
+		expected_challenge = int(hashlib.sha1(proof["commitment"]["A"] + "," + proof["commitment"]["B"]).hexdigest(), 16)
+		if C != expected_challenge:
+			raise VerificationException("Challenge is wrong")
+		
+		# Do the maths
 		T = long(proof["response"])
 		P = cryptosystem.get_prime()
 		
@@ -117,4 +129,4 @@ with statusCheck("Verifying decryption proofs"):
 		if not AT == BBMC:
 			raise VerificationException("alpha^t != B(beta/m)^c (mod p)")
 
-print("The election has passed validation, however this script does not perform all possible checks, so the legitimacy of the result cannot be guaranteed.")
+print("The election has passed validation.")
