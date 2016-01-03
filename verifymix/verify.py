@@ -25,10 +25,9 @@ from mixnet.PrivateKey import PrivateKey
 from mixnet.PublicKey import PublicKey
 from mixnet.ShufflingProof import ShufflingProof
 
-import hashlib, itertools, json, sys, urllib2
+import hashlib, itertools, json, math, sys, urllib2
 
 electionUrl = sys.argv[1].rstrip("/")
-NUM_BITS = 2048 # TODO: Actually detect this
 
 class VerificationException(Exception):
 	pass
@@ -48,7 +47,8 @@ with statusCheck("Downloading election data"):
 	# Election
 	election = json.load(urllib2.urlopen(electionUrl))
 	
-	cryptosystem = EGCryptoSystem.load(NUM_BITS, long(election["public_key"]["p"]), int(election["public_key"]["g"])) # The generator might be a long if it's big? I don't know.
+	nbits = ((int(math.log(long(election["public_key"]["p"]), 2)) - 1) & ~255) + 256
+	cryptosystem = EGCryptoSystem.load(nbits, long(election["public_key"]["p"]), int(election["public_key"]["g"])) # The generator might be a long if it's big? I don't know.
 	pk = PublicKey(cryptosystem, long(election["public_key"]["y"]))
 	
 	# Ballots
@@ -76,11 +76,11 @@ with statusCheck("Downloading election data"):
 	assert(len(trustees) == 1) # TODO: Multiple trustees
 
 with statusCheck("Verifying mix"):
-	proof = ShufflingProof.from_dict(mixnets[0][1], pk, NUM_BITS)
+	proof = ShufflingProof.from_dict(mixnets[0][1], pk, nbits)
 	
 	orig = CiphertextCollection(pk)
 	for ballot in reversed(ballots):
-		ciphertext = Ciphertext(NUM_BITS, orig._pk_fingerprint)
+		ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
 		
 		ciphertext.append(long(ballot["vote"]["answers"][0]["choices"][0]["alpha"]), long(ballot["vote"]["answers"][0]["choices"][0]["beta"]))
 		
@@ -88,7 +88,7 @@ with statusCheck("Verifying mix"):
 	
 	shuf = CiphertextCollection(pk)
 	for ballot in mixedAnswers["answers"]:
-		ciphertext = Ciphertext(NUM_BITS, shuf._pk_fingerprint)
+		ciphertext = Ciphertext(nbits, shuf._pk_fingerprint)
 		
 		ciphertext.append(long(ballot["choice"]["alpha"]), long(ballot["choice"]["beta"]))
 		
@@ -119,14 +119,14 @@ with statusCheck("Verifying decryption proofs"):
 		
 		GT = pow(cryptosystem.get_generator(), T, P)
 		AYC = (long(proof["commitment"]["A"]) * pow(pk._key, C, P)) % P
-		if not GT == AYC:
+		if GT != AYC:
 			raise VerificationException("g^t != Ay^c (mod p)")
 		
 		AT = pow(long(ballot["choice"]["alpha"]), T, P)
 		BM = (long(ballot["choice"]["beta"]) * pow(result + 1, P - 2, P)) % P
 		BBMC = (long(proof["commitment"]["B"]) * pow(BM, C, P)) % P
 		
-		if not AT == BBMC:
+		if AT != BBMC:
 			raise VerificationException("alpha^t != B(beta/m)^c (mod p)")
 
 print("The election has passed validation.")
