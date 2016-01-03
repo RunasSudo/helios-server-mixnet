@@ -7,13 +7,10 @@ body {
 }
 
 #wrapper {
-  position: absolute;
   padding: 0px;
   background: white;
   border: 1px solid #666;
-  top: 20px;
-  margin-left: 100px;
-  margin-top: 0px;
+  margin: 20px auto;
   width: 1000px;
 }
 
