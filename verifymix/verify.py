@@ -48,7 +48,7 @@ with statusCheck("Downloading election data"):
 	# Election
 	election = json.load(urllib2.urlopen(electionUrl))
 	
-	cryptosystem = EGCryptoSystem.load(NUM_BITS, long(election["public_key"]["p"]), long(election["public_key"]["g"]))
+	cryptosystem = EGCryptoSystem.load(NUM_BITS, long(election["public_key"]["p"]), int(election["public_key"]["g"])) # The generator might be a long if it's big? I don't know.
 	pk = PublicKey(cryptosystem, long(election["public_key"]["y"]))
 	
 	# Ballots
@@ -94,11 +94,6 @@ with statusCheck("Verifying mix"):
 		
 		shuf.add_ciphertext(ciphertext)
 	
-	# TODO: Verify the Helios challenge
-	def _generate_challenge(a, b):
-		return mixnets[0][1]["challenge"]
-	proof._generate_challenge = _generate_challenge
-	
 	if not proof.verify(orig, shuf):
 		raise VerificationException("Shuffle failed to prove")
 
@@ -114,7 +109,6 @@ with statusCheck("Verifying decryption proofs"):
 		AYC = (long(proof["commitment"]["A"]) * pow(pk._key, C, P)) % P
 		if not GT == AYC:
 			raise VerificationException("g^t != Ay^c (mod p)")
-		
 		
 		AT = pow(long(ballot["choice"]["alpha"]), T, P)
 		BM = (long(ballot["choice"]["beta"]) * pow(result + 1, P - 2, P)) % P
