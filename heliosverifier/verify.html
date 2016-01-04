@@ -105,7 +105,7 @@ function load_election_and_ballots(election_url) {
 
         $(election.questions).each(function(qnum, q) {
             if (q.tally_type != "homomorphic") {
-              result_append("PROBLEM: this election is not a straight-forward homomorphic-tally election. As a result, Helios cannot currently verify it.");
+              result_append("PROBLEM: this election is not a straight-forward homomorphic-tally election. As a result, Helios cannot currently verify it. Try the <a href='https://github.com/RunasSudo/helios-server-mixnet/tree/master/verifymix'>standalone python mixnet verifier</a> instead.");
               return;
             }
 
