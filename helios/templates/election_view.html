@@ -57,6 +57,10 @@ this {{election.election_type}} is <u>not</u> featured on the front page.
 <a href="{% url "helios.views.one_election_questions" election.uuid %}">questions ({% if election.questions %}{{election.questions|length}}{% else %}0{% endif %})</a>
 &nbsp;&nbsp;|&nbsp;&nbsp;
 <a href="{% url "helios.views.voters_list_pretty" election.uuid %}">voters &amp; ballots</a>
+{% if election.workflow_type == "mixnet" %}
+&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="{% url "helios.views.list_mixnets_view" election.uuid %}">mixnets ({{mixnets|length}})</a>
+{% endif %}
 &nbsp;&nbsp;|&nbsp;&nbsp;
 <a href="{% url "helios.views.list_trustees_view" election.uuid %}">trustees ({{trustees|length}})</a>
 </p>

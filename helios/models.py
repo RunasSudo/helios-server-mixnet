@@ -834,6 +834,19 @@ class Election(HeliosModel):
     results = map(hash, self.result_choices)
     results = Counter(results)
     return dict(results)
+  
+  ##
+  ## MIXES & PROOFS
+  ##
+  def get_helios_mixnet(self):
+    helios_mixnets = self.mixnets.filter(name = 'Helios mixnet')
+    if len(helios_mixnets) > 0:
+      return helios_mixnets[0]
+    else:
+      return None
+  
+  def has_helios_mixnet(self):
+    return self.get_helios_mixnet() != None
 
 class ElectionLog(models.Model):
   """

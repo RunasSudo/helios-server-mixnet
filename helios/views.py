@@ -375,6 +375,7 @@ def one_election_view(request, election):
   socialbuttons_url = get_socialbuttons_url(election_url, status_update_message)
 
   trustees = Trustee.get_by_election(election)
+  mixnets = election.mixnets.filter()
 
   # should we show the result?
   show_result = election.result_released_at or (election.result and admin_p)
@@ -385,7 +386,8 @@ def one_election_view(request, election):
                           'can_feature_p': can_feature_p, 'election_url' : election_url,
                           'vote_url': vote_url, 'election_badge_url' : election_badge_url,
                           'show_result': show_result,
-                          'test_cookie_url': test_cookie_url, 'socialbuttons_url' : socialbuttons_url})
+                          'test_cookie_url': test_cookie_url, 'socialbuttons_url' : socialbuttons_url,
+                          'mixnets': mixnets})
 
 def test_cookie(request):
   continue_url = request.GET['continue_url']
@@ -1451,8 +1453,27 @@ def ballot_list(request, election):
   return [v.last_cast_vote().ld_object.short.toDict(complete=True) for v in voters]
 
 ##
-## mixnet proofs
+## mixnets & proofs
 ##
+@election_view()
+def list_mixnets_view(request, election):
+  mixnets = election.mixnets.filter()
+  user = get_user(request)
+  admin_p = security.user_can_admin_election(user, election)
+
+  return render_template(request, 'list_mixnets', {'election': election, 'mixnets': mixnets, 'admin_p': admin_p})
+
+@election_view()
+def new_mixnet(request, election):
+  pass
+
+@election_view()
+def new_mixnet_helios(request, election):
+  pass
+
+@election_view()
+def delete_mixnet(request, election):
+  pass
 
 @election_view()
 @return_json
