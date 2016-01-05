@@ -1463,16 +1463,40 @@ def list_mixnets_view(request, election):
 
   return render_template(request, 'list_mixnets', {'election': election, 'mixnets': mixnets, 'admin_p': admin_p})
 
-@election_view()
+@election_admin(frozen=False)
 def new_mixnet(request, election):
-  pass
+  if request.method == "GET":
+    return render_template(request, 'new_mixnet', {'election' : election})
+  else:
+    params = {'election': election, 'mix_order': election.mixnets.count(),
+              'name': request.POST['name'],
+              'email': request.POST['email'],
+              'mixnet_type': request.POST['mixnet_type'],
+              'remote_protocol': request.POST['remote_protocol']}
+    
+    mixnet = ElectionMixnet(**params)
+    mixnet.save()
+    
+    return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(list_mixnets_view, args=[election.uuid]))
 
-@election_view()
+@election_admin(frozen=False)
 def new_mixnet_helios(request, election):
+  election.generate_helios_mixnet()
+  
+  return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(list_mixnets_view, args=[election.uuid]))
+
+@election_admin(frozen=False)
+def delete_mixnet(request, election):
   pass
 
-@election_view()
+@election_admin(frozen=False)
 def delete_mixnet(request, election):
+  mixnet = election.mixnets.filter()[int(request.GET['index'])]
+  mixnet.delete()
+  return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(list_mixnets_view, args=[election.uuid]))
+
+@election_admin()
+def mixnet_send_url(request, election, mixnet_index):
   pass
 
 @election_view()

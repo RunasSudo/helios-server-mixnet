@@ -1,0 +1,22 @@
+{% extends "helios/templates/cryptobase.html" %}
+
+{% block content %}
+  <h2 class="title">{{election.name}} &mdash; New Mixnet <span style="font-size:0.7em;">[<a href="{% url "helios.views.list_mixnets_view" election.uuid %}">cancel</a>]</span></h2>
+  
+<form method="post" action="">
+Name: <input type="text" name="name" size="60" /><br /><br />
+Type: <select name="mixnet_type">
+<option name="local">Local</option>
+<option name="remote" selected>Remote</option>
+</select><br /><br />
+Remote protocol: <select name="remote_protocol">
+<option name="helios">Helios</option>
+<option name="verificatum">Verificatum</option>
+<option name="manual" selected>Manual</option>
+</select><br /><br />
+Email: <input type="text" name="email" size="60" /><br /><br />
+
+<input type="submit" value="Add Mixnet" />
+</form>
+
+{% endblock %}

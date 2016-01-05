@@ -95,6 +95,8 @@ urlpatterns = patterns('',
     (r'^/mixnets/add-helios$', new_mixnet_helios),
     (r'^/mixnets/delete$', delete_mixnet),
     
+    (r'^/mixnets/(?P<mixnet_index>[^/]+)/sendurl$', mixnet_send_url),
+    
     (r'^/mixnets$', mixnets_num),
     (r'^/mixnets/(?P<mixnet_index>[^/]+)/answers$', mixnets_answers),
     (r'^/mixnets/(?P<mixnet_index>[^/]+)/proof$', mixnets_proof),

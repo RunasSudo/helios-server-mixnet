@@ -57,7 +57,8 @@ class MixedAnswers(HeliosModel):
 class ElectionMixnet(HeliosModel):
 
   MIXNET_REMOTE_TYPE_CHOICES = (('helios', 'Helios'),
-                                ('verificatum', 'Verificatum'))
+                                ('verificatum', 'Verificatum'),
+                                ('manual', 'Manual'))
   MIXNET_TYPE_CHOICES = (('local', 'Local'), ('remote', 'Remote'))
   MIXNET_STATUS_CHOICES = (('pending', 'Pending'), ('mixing', 'Mixing'),
                            ('error', 'Error'), ('finished', 'Finished'))
@@ -67,6 +68,8 @@ class ElectionMixnet(HeliosModel):
       default='local')
   election = models.ForeignKey('Election', related_name='mixnets')
   mix_order = models.PositiveIntegerField(default=0)
+
+  email = models.EmailField(max_length=75, null=True, blank=True)
 
   remote_ip = models.CharField(max_length=255, null=True, blank=True)
   remote_protocol = models.CharField(max_length=255, choices=MIXNET_REMOTE_TYPE_CHOICES,

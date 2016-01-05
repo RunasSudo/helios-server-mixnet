@@ -41,8 +41,8 @@
 {% if not election.frozen_at %}[<a onclick="return confirm('Are you sure you want to remove Helios as a mixnet?');" href="{% url "helios.views.delete_mixnet" election.uuid %}?uuid={{t.uuid}}">x</a>]{% endif %}
 {% else %}
 ({{t.email}})
-{% if not election.frozen_at %}[<a onclick="return confirm('Are you sure you want to remove this mixnet?');" href="{% url "helios.views.delete_mixnet" election.uuid %}?uuid={{t.uuid}}">x</a>]{% endif %}
-[<a onclick="return confirm('Are you sure you want to send this mixnet its admin URL?');" href="{% url "helios.views.mixnet_send_url" election.uuid t.uuid %}">send login</a>]
+{% if not election.frozen_at %}[<a onclick="return confirm('Are you sure you want to remove this mixnet?');" href="{% url "helios.views.delete_mixnet" election.uuid %}?index={{forloop.counter|add:-1}}">x</a>]{% endif %}
+[<a onclick="return confirm('Are you sure you want to send this mixnet its admin URL?');" href="{% url "helios.views.mixnet_send_url" election.uuid forloop.counter %}">send login</a>]
 {% endif %}
 {% endif %}
 </h5>
