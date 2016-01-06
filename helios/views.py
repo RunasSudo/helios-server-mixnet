@@ -1626,3 +1626,8 @@ def mixnets_proof(request, election, mixnet_index):
   mixnet = election.mixnets.filter()[int(mixnet_index)]
   mixed_answers = mixnet.mixed_answers.filter()[0] # TODO: Deal with multiple questions
   return json.loads(mixed_answers.shuffling_proof)
+
+
+def debugger(request):
+  import pdb
+  pdb.set_trace()
