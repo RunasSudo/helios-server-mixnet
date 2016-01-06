@@ -22,7 +22,7 @@
 <p>
     [ <a onclick="return(confirm('Adding your own mixnet requires a good bit more work to tally the election.\nEach mixnet will need to re-encrypt and permute the ballots itself, and\nprovide a shadow mix shuffle proof.\n\nIf you are not sure what that means, we strongly recommend\nclicking Cancel and letting Helios shuffle the election for you.'));" href="{% url "helios.views.new_mixnet" election.uuid %}">add a mixnet</a> ]
 </p>
-{% if not election.has_helios_mixnet %}
+{% if not mixnets|length %}
 <p>
     <a href="{% url "helios.views.new_mixnet_helios" election.uuid %}">add Helios as a mixnet</a>
 </p>
