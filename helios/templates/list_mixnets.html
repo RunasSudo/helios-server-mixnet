@@ -47,10 +47,12 @@
 {% endif %}
 </h5>
 
+{% if election.tallying_started_at %}
 {% if t.mixed_answers.filter|length %}
 <b>shuffle recorded for this mixnet.</b>
 {% else %}
 <em>waiting for this mixnets's shuffle</em>
+{% endif %}
 {% endif %}
 </li>
 {% endfor %}
