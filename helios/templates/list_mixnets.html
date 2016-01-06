@@ -20,7 +20,7 @@
 
 {% if admin_p %}
 <p>
-    [ <a onclick="return(confirm('Adding your own mixnet requires a good bit more work to tally the election.\nEach mixnet will need to re-encrypt and permute the ballots itself, and provide a shadow mix shuffle proof.\n\nIf you are not sure what that means, we strongly recommend\nclicking Cancel and letting Helios shuffle the election for you.'));" href="{% url "helios.views.new_mixnet" election.uuid %}">add a mixnet</a> ]
+    [ <a onclick="return(confirm('Adding your own mixnet requires a good bit more work to tally the election.\nEach mixnet will need to re-encrypt and permute the ballots itself, and\nprovide a shadow mix shuffle proof.\n\nIf you are not sure what that means, we strongly recommend\nclicking Cancel and letting Helios shuffle the election for you.'));" href="{% url "helios.views.new_mixnet" election.uuid %}">add a mixnet</a> ]
 </p>
 {% if not election.has_helios_mixnet %}
 <p>
@@ -38,11 +38,11 @@
 <h5> Mixnet #{{forloop.counter}}: {{t.name}} 
 {% if admin_p %}
 {% if t.name == "Helios mixnet" %}
-{% if not election.frozen_at %}[<a onclick="return confirm('Are you sure you want to remove Helios as a mixnet?');" href="{% url "helios.views.delete_mixnet" election.uuid %}?uuid={{t.uuid}}">x</a>]{% endif %}
+{% if not election.frozen_at %}[<a onclick="return confirm('Are you sure you want to remove Helios as a mixnet?');" href="{% url "helios.views.delete_mixnet" election.uuid %}?index={{forloop.counter|add:-1}}">x</a>]{% endif %}
 {% else %}
 ({{t.email}})
 {% if not election.frozen_at %}[<a onclick="return confirm('Are you sure you want to remove this mixnet?');" href="{% url "helios.views.delete_mixnet" election.uuid %}?index={{forloop.counter|add:-1}}">x</a>]{% endif %}
-[<a onclick="return confirm('Are you sure you want to send this mixnet its admin URL?');" href="{% url "helios.views.mixnet_send_url" election.uuid forloop.counter %}">send login</a>]
+[<a onclick="return confirm('Are you sure you want to send this mixnet its admin URL?');" href="{% url "helios.views.mixnet_send_url" election.uuid forloop.counter|add:-1 %}">send login</a>]
 {% endif %}
 {% endif %}
 </h5>

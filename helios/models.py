@@ -70,6 +70,7 @@ class ElectionMixnet(HeliosModel):
   mix_order = models.PositiveIntegerField(default=0)
 
   email = models.EmailField(max_length=75, null=True, blank=True)
+  secret = models.CharField(max_length=100)
 
   remote_ip = models.CharField(max_length=255, null=True, blank=True)
   remote_protocol = models.CharField(max_length=255, choices=MIXNET_REMOTE_TYPE_CHOICES,
@@ -83,6 +84,17 @@ class ElectionMixnet(HeliosModel):
   class Meta:
     ordering = ['-mix_order']
     unique_together = [('election', 'mix_order'), ('election', 'name')]
+
+  def save(self, *args, **kwargs):
+    """
+    override this just to get a hook
+    """
+    # not saved yet?
+    if not self.secret:
+      self.secret = heliosutils.random_string(12)
+      self.election.append_log("mixnet %s added" % self.name)
+
+    super(ElectionMixnet, self).save(*args, **kwargs)
 
   def can_mix(self):
     return self.status in ['pending'] and not self.election.tallied
@@ -140,7 +152,8 @@ class ElectionMixnet(HeliosModel):
       raise Exception("Cannot initialize mixing. Already mixed ???")
 
     if self.mixnet_type == "remote":
-      raise Exception("Remote mixnets not implemented yet.")
+      #raise Exception("Remote mixnets not implemented yet.")
+      return
 
     mixnet = mix_cls(self.election)
     self.mixing_started_at = datetime.datetime.now()

@@ -1497,7 +1497,116 @@ def delete_mixnet(request, election):
 
 @election_admin()
 def mixnet_send_url(request, election, mixnet_index):
-  pass
+  mixnet = election.mixnets.filter()[int(mixnet_index)]
+
+  url = settings.SECURE_URL_HOST + reverse(mixnet_login, args=[election.short_name, mixnet_index, mixnet.secret])
+
+  body = """
+
+You are a mixnet for %s.
+
+Your mixnet dashboard is at
+
+  %s
+
+--
+Helios
+""" % (election.name, url)
+
+  helios_utils.send_email(settings.SERVER_EMAIL, ["%s <%s>" % (mixnet.name, mixnet.email)], 'your mixnet homepage for %s' % election.name, body)
+
+  logging.info("URL %s " % url)
+  return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(list_mixnets_view, args = [election.uuid]))
+
+def mixnet_login(request, election_short_name, mixnet_index, mixnet_secret):
+  election = Election.get_by_short_name(election_short_name)
+  if election:
+    mixnets = election.mixnets.filter()
+
+    if mixnets.count() > int(mixnet_index):
+      mixnet = mixnets[int(mixnet_index)]
+      
+      if mixnet.secret == mixnet_secret:
+        set_logged_in_mixnet(request, election, mixnet_index)
+        
+        return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(mixnet_home, args=[election.uuid, mixnet_index]))
+      else:
+        # bad secret, we'll let that redirect to the front page
+        pass
+    else:
+      # no such mixnet
+      raise Http404
+
+  return HttpResponseRedirect(settings.SECURE_URL_HOST + "/")
+
+
+@mixnet_check
+def mixnet_home(request, election, mixnet_index):
+  mixnet = election.mixnets.filter()[int(mixnet_index)]
+  return render_template(request, 'mixnet_home', {'election': election, 'mixnet_index': mixnet_index, 'mixnet': mixnet})
+
+@mixnet_check
+def mixnet_shuffle_and_prove(request, election, mixnet_index):
+  mixnet = election.mixnets.filter()[int(mixnet_index)]
+  if election.get_next_mixnet() != mixnet:
+    return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(one_election_view,args=[election.uuid]))
+  
+  # :/
+  pk = {'p': election.public_key.p, 'q': election.public_key.q, 'g': election.public_key.g, 'y': election.public_key.y}
+  origDict = {'public_key': pk, 'answers': []}
+  for answer in mixnet.get_original_answers():
+    origDict['answers'].append(answer.toJSONDict())
+  orig = json.dumps(origDict)
+  
+  return render_template(request, 'mixnet_shuffle_and_prove', {'election': election, 'mixnet_index': mixnet_index, 'mixnet': mixnet, 'orig': orig})
+
+@transaction.commit_on_success
+@mixnet_check
+def mixnet_upload_shuffle(request, election, mixnet_index):
+  if 'shuffle_file' not in request.FILES or 'proof_file' not in request.FILES:
+    return HttpResponseBadRequest(request.FILES)
+  
+  mixnet = election.mixnets.filter()[int(mixnet_index)]
+  
+  import phoebus.phoebus
+  pk, nbits = phoebus.phoebus.mixnet_pk(election.public_key)
+  
+  from phoebus.mixnet.Ciphertext import Ciphertext
+  from phoebus.mixnet.CiphertextCollection import CiphertextCollection
+  from phoebus.mixnet.ShufflingProof import ShufflingProof
+  
+  # Read the uploaded shuffle and proof
+  shuf = CiphertextCollection.from_dict(json.load(request.FILES['shuffle_file']), pk, nbits)
+  proof = ShufflingProof.from_dict(json.load(request.FILES['proof_file']), pk, nbits)
+  
+  # Convert the ballots to ciphertexts
+  orig = CiphertextCollection(pk)
+  for ballot in mixnet.get_original_answers():
+    ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
+    ciphertext.append(long(ballot.choice.alpha), long(ballot.choice.beta))
+    orig.add_ciphertext(ciphertext)
+  
+  # Verify the proof
+  if not proof.verify(orig, shuf):
+    return HttpResponse(content="FAILURE")
+  
+  # Convert the mixnet results
+  # TODO: Clean this the hell up
+  new_answers = helios.workflows.mixnet.MixedAnswers([], question_num=0)
+  for index, ct in enumerate(shuf):
+    cipher = helios.crypto.elgamal.Ciphertext(alpha=ct.gamma[0], beta=ct.delta[0])
+    new_answers.answers.append(helios.workflows.mixnet.MixedAnswer(choice=cipher, index=index))
+  mixed_votes = helios.models.MixedAnswers(mixnet=mixnet)
+  mixed_votes.mixed_answers = new_answers.ld_object
+  mixed_votes.shuffling_proof = json_module.dumps(proof.to_dict())
+  mixed_votes.save()
+  
+  mixnet.mixing_finished_at = datetime.datetime.now()
+  mixnet.status = 'finished'
+  mixnet.save()
+  
+  return HttpResponse(content="OK!")
+
 
 @election_view()
 @return_json

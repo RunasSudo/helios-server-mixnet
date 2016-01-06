@@ -1,0 +1,27 @@
+{% extends "helios/templates/cryptobase.html" %}
+
+{% block content %}
+  <h2 class="title">{{election.name}} &mdash; Mixnet #{{mixnet_index|add:1}} Home</span></h2>
+
+<p>
+{% if election.voting_has_stopped %}
+{% if mixnet.mixed_answers.filter|length %}
+You have successfully uploaded your shuffle.
+{% else %}
+{% if election.get_next_mixnet == mixnet %}
+    Your encrypted tally for this election is ready.<br />
+    <a href="{% url "helios.views.mixnet_shuffle_and_prove" election.uuid mixnet_index %}">upload your shuffle</a>
+{% else %}
+    The election has closed, but it is not yet your turn to shuffle the ballots. Check back later.<br />
+    You should keep the email with your mixnet homepage link, which contains the credentials needed to get back here.
+{% endif %}
+{% endif %}
+{% else %}
+Once the election is closed, come back here to provide your shuffle.<br />
+You should keep the email with your mixnet homepage link, which contains the credentials needed to get back here.
+{% endif %}
+</p>
+
+
+
+{% endblock %}
