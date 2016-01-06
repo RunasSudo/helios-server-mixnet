@@ -24,6 +24,7 @@ urlpatterns = patterns('',
   
   # trustee login
   (r'^t/(?P<election_short_name>[^/]+)/(?P<trustee_email>[^/]+)/(?P<trustee_secret>[^/]+)$', trustee_login),
+  (r'^m/(?P<election_short_name>[^/]+)/(?P<mixnet_index>[^/]+)/(?P<mixnet_secret>[^/]+)$', mixnet_login),
   
   # election
   (r'^elections/params$', election_params),
@@ -34,6 +35,8 @@ urlpatterns = patterns('',
   (r'^elections/voted$', elections_voted),
   
   (r'^elections/(?P<election_uuid>[^/]+)', include('helios.election_urls')),
+  
+  #(r'^debugger', debugger),
   
 )
 

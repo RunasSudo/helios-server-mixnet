@@ -89,7 +89,17 @@ urlpatterns = patterns('',
     (r'^/ballots/(?P<voter_uuid>[^/]+)/all$', voter_votes),
     (r'^/ballots/(?P<voter_uuid>[^/]+)/last$', voter_last_vote),
 
-    # mixnet proofs
+    # mixnets & proofs
+    (r'^/mixnets/view$', list_mixnets_view),
+    (r'^/mixnets/new$', new_mixnet),
+    (r'^/mixnets/add-helios$', new_mixnet_helios),
+    (r'^/mixnets/delete$', delete_mixnet),
+    (r'^/mixnets/(?P<mixnet_index>[^/]+)/sendurl$', mixnet_send_url),
+    
+    (r'^/mixnets/(?P<mixnet_index>[^/]+)/home$', mixnet_home),
+    (r'^/mixnets/(?P<mixnet_index>[^/]+)/shuffle-and-prove$', mixnet_shuffle_and_prove),
+    (r'^/mixnets/(?P<mixnet_index>[^/]+)/upload-shuffle$', mixnet_upload_shuffle),
+    
     (r'^/mixnets$', mixnets_num),
     (r'^/mixnets/(?P<mixnet_index>[^/]+)/answers$', mixnets_answers),
     (r'^/mixnets/(?P<mixnet_index>[^/]+)/proof$', mixnets_proof),

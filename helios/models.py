@@ -57,7 +57,8 @@ class MixedAnswers(HeliosModel):
 class ElectionMixnet(HeliosModel):
 
   MIXNET_REMOTE_TYPE_CHOICES = (('helios', 'Helios'),
-                                ('verificatum', 'Verificatum'))
+                                ('verificatum', 'Verificatum'),
+                                ('manual', 'Manual'))
   MIXNET_TYPE_CHOICES = (('local', 'Local'), ('remote', 'Remote'))
   MIXNET_STATUS_CHOICES = (('pending', 'Pending'), ('mixing', 'Mixing'),
                            ('error', 'Error'), ('finished', 'Finished'))
@@ -67,6 +68,9 @@ class ElectionMixnet(HeliosModel):
       default='local')
   election = models.ForeignKey('Election', related_name='mixnets')
   mix_order = models.PositiveIntegerField(default=0)
+
+  email = models.EmailField(max_length=75, null=True, blank=True)
+  secret = models.CharField(max_length=100)
 
   remote_ip = models.CharField(max_length=255, null=True, blank=True)
   remote_protocol = models.CharField(max_length=255, choices=MIXNET_REMOTE_TYPE_CHOICES,
@@ -80,6 +84,17 @@ class ElectionMixnet(HeliosModel):
   class Meta:
     ordering = ['-mix_order']
     unique_together = [('election', 'mix_order'), ('election', 'name')]
+
+  def save(self, *args, **kwargs):
+    """
+    override this just to get a hook
+    """
+    # not saved yet?
+    if not self.secret:
+      self.secret = heliosutils.random_string(12)
+      self.election.append_log("mixnet %s added" % self.name)
+
+    super(ElectionMixnet, self).save(*args, **kwargs)
 
   def can_mix(self):
     return self.status in ['pending'] and not self.election.tallied
@@ -137,7 +152,8 @@ class ElectionMixnet(HeliosModel):
       raise Exception("Cannot initialize mixing. Already mixed ???")
 
     if self.mixnet_type == "remote":
-      raise Exception("Remote mixnets not implemented yet.")
+      #raise Exception("Remote mixnets not implemented yet.")
+      return
 
     mixnet = mix_cls(self.election)
     self.mixing_started_at = datetime.datetime.now()
@@ -834,6 +850,19 @@ class Election(HeliosModel):
     results = map(hash, self.result_choices)
     results = Counter(results)
     return dict(results)
+  
+  ##
+  ## MIXES & PROOFS
+  ##
+  def get_helios_mixnet(self):
+    helios_mixnets = self.mixnets.filter(name = 'Helios mixnet')
+    if len(helios_mixnets) > 0:
+      return helios_mixnets[0]
+    else:
+      return None
+  
+  def has_helios_mixnet(self):
+    return self.get_helios_mixnet() != None
 
 class ElectionLog(models.Model):
   """

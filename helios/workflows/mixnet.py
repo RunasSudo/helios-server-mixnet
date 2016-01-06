@@ -280,6 +280,7 @@ def compute_tally(election):
   """
   mixnet = election.get_next_mixnet()
   if not mixnet:
+    election.init_encrypted_tally()
     return False
 
   mixnet.mix_votes(Mixnet)

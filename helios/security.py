@@ -48,6 +48,19 @@ def get_logged_in_trustee(request):
 def set_logged_in_trustee(request, trustee):
   request.session[HELIOS_TRUSTEE_UUID] = trustee.uuid
 
+# a function to check if the current user is a mixnet
+HELIOS_MIXNET_ELECTION = 'helios_mixnet_election'
+HELIOS_MIXNET_INDEX = 'helios_mixnet_index'
+def get_logged_in_mixnet(request):
+  if request.session.has_key(HELIOS_MIXNET_ELECTION):
+    return Election.get_by_short_name(request.session[HELIOS_MIXNET_ELECTION]).mixnets.filter()[int(request.session[HELIOS_MIXNET_INDEX])]
+  else:
+    return None
+
+def set_logged_in_mixnet(request, election, mixnet_index):
+  request.session[HELIOS_MIXNET_ELECTION] = election.short_name
+  request.session[HELIOS_MIXNET_INDEX] = mixnet_index
+
 #
 # some common election checks
 #
@@ -178,6 +191,19 @@ def trustee_check(func):
       raise PermissionDenied()
   
   return update_wrapper(trustee_check_wrapper, func)
+
+def mixnet_check(func):
+  def mixnet_check_wrapper(request, election_uuid, mixnet_index, *args, **kwargs):
+    election = get_election_by_uuid(election_uuid)
+    
+    mixnet = election.mixnets.filter()[int(mixnet_index)]
+    
+    if mixnet == get_logged_in_mixnet(request):
+      return func(request, election, mixnet_index, *args, **kwargs)
+    else:
+      raise PermissionDenied()
+  
+  return update_wrapper(mixnet_check_wrapper, func)
 
 def can_create_election(request):
   user = get_user(request)

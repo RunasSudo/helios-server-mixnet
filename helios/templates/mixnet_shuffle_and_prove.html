@@ -1,0 +1,88 @@
+{% extends "helios/templates/cryptobase.html" %}
+
+{% block content %}
+<script language="javascript">
+
+$(document).ready(function() {
+    $('#waiting_submit_div').hide();
+    $('#done_div').hide();
+    $('#error_div').hide();
+});
+
+
+function submit_result() {
+  $('#step_two').hide();
+  $('#waiting_submit_div').show();
+
+  var result = new FormData($('form')[0]);
+  
+  // do the post
+  $.ajax({
+      type: 'POST',
+      url: "./upload-shuffle",
+      data: result,
+      cache: false,
+      processData: false,
+      contentType: false,
+      success: function(result) {
+        $('#waiting_submit_div').hide();
+        if (result != "FAILURE") {
+          $('#done_div').show();
+        } else {
+          $('#waiting_submit_div').hide();
+          $('#error_div').show();
+        }
+      },
+      error: function(error) {
+          $('#waiting_submit_div').hide();
+          $('#error_div').show();
+      }
+  });
+}
+
+</script>
+  <h2 class="title">Mixnet #{{mixnet_index|add:1}} &mdash; Shuffle Result for {{election.name}}</h2>
+
+<p>
+    <b>Mixnet:</b> <tt>{{mixnet.name}}</tt>
+</p>
+
+    <p>
+      The encrypted tally for your election has been computed.<br />
+      Now it's time to compute and submit your partial decryption.
+    </p>
+
+    <p>
+      This process is performed in two steps.<br /><br />
+      <u>First</u>, you must shuffle the ballots and produce a shadow mix proof of shuffle. This is currently not possible in the browser, so you will need to use the <a href="https://github.com/RunasSudo/helios-server-mixnet/tree/master/verifymix">standalone Python mixnet shuffler</a>, then return to this page.<br /><br />
+      <u>Second</u>, once your shuffe and proof have been computed, your browser will need to be "online" to submit them to the server.
+    </p>
+
+  <div id="waiting_submit_div">
+      Submitting and checking your shuffle and proofs...<br />
+      <img src="/static/helios/loading.gif" />
+  </div>
+  
+  <div id="step_two">
+      <h3>FIRST STEP: shuffle the ballots</h3>
+      <textarea cols="60" rows="5" wrap="soft">{{ orig }}</textarea>
+      
+      <h3>SECOND STEP: upload your shuffle and proof</h3>
+      <form action="javascript:submit_result();" enctype="multipart/form-data">
+          Your shuffle:
+          <input name="shuffle_file" type="file" /><br /><br />
+          Your proof:
+          <input name="proof_file" type="file" /><br /><br />
+          <input type="submit" value="Upload shuffle and proof to server" />
+      </form>
+  </div>
+  
+  <div id="done_div">
+      Done! <a href="{% url "helios.views.one_election_view" election.uuid %}">Back to election</a>
+  </div>
+  
+  <div id="error_div">
+      <strong style="color: red;">An error occurred. Refresh the page to try again.</strong>
+  </div>
+
+{% endblock %}
