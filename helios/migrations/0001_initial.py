@@ -114,7 +114,6 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(default=b'Helios mixnet', max_length=255)),
                 ('mixnet_type', models.CharField(default=b'local', max_length=255, choices=[(b'local', b'Local'), (b'remote', b'Remote')])),
                 ('mix_order', models.PositiveIntegerField(default=0)),
-                ('email', models.EmailField(max_length=75, null=True, blank=True)),
                 ('remote_ip', models.CharField(max_length=255, null=True, blank=True)),
                 ('remote_protocol', models.CharField(default=b'helios', max_length=255, choices=[(b'helios', b'Helios'), (b'verificatum', b'Verificatum'), (b'manual', b'Manual')])),
                 ('mixing_started_at', models.DateTimeField(null=True)),
