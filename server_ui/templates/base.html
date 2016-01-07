@@ -47,6 +47,8 @@
 	{% endif %}
 	{% if not settings.MASTER_HELIOS %}
 	<li><a href="http://heliosvoting.org">About Helios</a></li>
+	<li class="divider"></li>
+	<li><a href="http://heliosvoting.org/faq">FAQ</a></li>
 	{% endif %}
       </ul>
       
@@ -64,8 +66,6 @@
         <li class="divider"></li>
         <li><a href="/privacy">Privacy</a></li>
 	{% endif %}
-        <li class="divider"></li>
-        <li><a href="mailto:{{settings.HELP_EMAIL_ADDRESS}}">Help!</a></li>
       </ul>
     </section>
   </nav>
