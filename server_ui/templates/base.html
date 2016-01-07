@@ -48,6 +48,8 @@
 	{% if not settings.MASTER_HELIOS %}
 	<li><a href="http://heliosvoting.org">About Helios</a></li>
 	<li class="divider"></li>
+	<li><a href="https://github.com/RunasSudo/helios-server-mixnet">About this Fork</a></li>
+	<li class="divider"></li>
 	<li><a href="http://heliosvoting.org/faq">FAQ</a></li>
 	{% endif %}
       </ul>
@@ -86,9 +88,6 @@
       <img src="{{settings.FOOTER_LOGO_URL}}" />
       {% endif %}
     </span>-->
-    <span style="float:right;">
-      <a href="https://github.com/RunasSudo/helios-server-mixnet">Helios Voting with mixnet support</a>
-    </span>
     {% if user %}
     logged in as <b>{{user.display_html_small|safe}}</b>&nbsp;&nbsp;
     <a class="tiny button" href="{% url "helios_auth.views.logout" %}?return_url={{CURRENT_URL}}">logout</a><br />
