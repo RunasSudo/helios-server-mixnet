@@ -208,10 +208,6 @@ class EncryptedVote(EncryptedVote):
 
 
   def verify(self, election):
-    # right number of answers
-    if len(self.encrypted_answers) != 1:
-      return False
-
     # check hash
     if self.election_hash != election.hash:
       # print "%s / %s " % (self.election_hash, election.hash)
@@ -221,8 +217,9 @@ class EncryptedVote(EncryptedVote):
     if self.election_uuid != election.uuid:
       return False
 
-    if not self.encrypted_answers[0].verify(election.public_key):
-      return False
+    for answer in self.encrypted_answers:
+      if not answer.verify(election.public_key):
+        return False
 
     return True
 
