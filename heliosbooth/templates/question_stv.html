@@ -9,19 +9,15 @@
 <span style="font-size: 0.6em;">Question #{$T.question_num + 1} of {$T.last_question_num + 1}</span>
 </p>
 
-<p style="font-size: 0.8em;">Drag and drop the candidates from below the line to above the line in order from most preferred to least preferred. You do not need to list all the candidates.</p>
+<p style="font-size: 0.8em;">Drag and drop the candidates from below the line to above the line in order from most preferred to least preferred. You do not need to list all the candidates. Drag and drop the party name (in <i>italics</i>) to move all that party's candidates at once.</p>
 
 <div style="border: 1px solid black; padding: 0.5em;">
 <span style="font-size: 0.6em;">Most preferred</span>
-<ul class="stv_choices" id="stv_choices_selected" style="background-color: #EEE; border: 1px solid #DDD; margin: 0; padding-top: 0.5em; padding-bottom: 0.5em;"></ul>
+<ul id="stv_choices_selected" class="stv-toplevel"></ul>
 <span style="font-size: 0.6em;">Least preferred</span>
 <hr>
 <span style="font-size: 0.6em;">Remaining candidates</span>
-<ul class="stv_choices" id="stv_choices_available" style="background-color: #EEE; border: 1px solid #DDD; margin: 0; padding-top: 0.5em; padding-bottom: 0.5em;">
-{#foreach $T.question.answers as answer}
-<li class="stv_choice" data-index="{$T.answer$index}">{$T.answer$index} - {$T.answer}</li>
-{#/if}
-</ul>
+<ul id="stv_choices_available" class="stv-toplevel"></ul>
 </div>
 
 <p style="font-size: 0.7em;">Alternatively, type the numbers corresponding to the candidates (e.g. 0,1,2,3) in order from most preferred to least preferred into the box below.</p>
@@ -52,21 +48,6 @@
 
 </form>
 
-<script>{#literal}
-	var answerBox = document.getElementById("stv_answer");
-	var containerSelected = document.getElementById("stv_choices_selected");
-	var containerAvailable = document.getElementById("stv_choices_available");
-	
-	function updateAnswerBox() {
-		answerBox.value = "";
-		var choices = containerSelected.children;
-		for (var i = 0; i < choices.length; i++) {
-			if (answerBox.value !== "")
-				answerBox.value += ",";
-			answerBox.value += choices[i].getAttribute("data-index");
-		}
-	}
-	
-	Sortable.create(containerSelected, { group: "stv_choices", onEnd: updateAnswerBox });
-	Sortable.create(containerAvailable, { group: "stv_choices", onEnd: updateAnswerBox });
-{#/literal}</script>
+<script>
+	initAnswers({$T.question_num});
+</script>
