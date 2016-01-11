@@ -34,7 +34,7 @@ class Mixnet(WorkflowObject):
     new_ballots, mix_proof = ph_election.mix_ballots()
     new_votes = []
 
-    new_answers = MixedAnswers([], question_num=0)
+    new_answers = MixedAnswers([], question_num=question_num)
     for index, ballot in enumerate(new_ballots):
       cipher = Ciphertext(alpha=ballot.encrypted_ballot['a'],
           beta=ballot.encrypted_ballot['b'])
@@ -96,13 +96,18 @@ class Tally(HomomorphicTally):
     makes the decryption factors into strings, for general Helios / JS compatibility.
     """
     # for all choices of all questions (double list comprehension)
-    decryption_factors = [[]]
-    decryption_proof = [[]]
+    decryption_factors = []
+    decryption_proof = []
 
-    for vote in self.tally[0]:
+    for q in xrange(0, len(self.tally)):
+      decryption_factors_q = []
+      decryption_proof_q = []
+      for vote in self.tally[q]:
         dec_factor, proof = sk.decryption_factor_and_proof(vote)
-        decryption_factors[0].append(dec_factor)
-        decryption_proof[0].append(proof)
+        decryption_factors_q.append(dec_factor)
+        decryption_proof_q.append(proof)
+      decryption_factors.append(decryption_factors_q)
+      decryption_proof.append(decryption_proof_q)
 
     return decryption_factors, decryption_proof
 
@@ -119,7 +124,9 @@ class Tally(HomomorphicTally):
     dlog_table = DLogTable(base = public_key.g, modulus = public_key.p)
 
     if not self.num_tallied:
-      self.num_tallied = len(self.tally[0])
+      self.num_tallied = 0
+      for tally in self.tally:
+        self.num_tallied += len(tally)
 
     dlog_table.precompute(self.num_tallied)
 
@@ -178,9 +185,11 @@ class EncryptedVote(EncryptedVote):
 
   @property
   def encrypted_answer(self):
+    raise Exception("Not Yet Implemented: encrypted_answer")
     return self.encrypted_answers[0]
 
   def to_phoebus_ballot(self):
+    raise Exception("Not Yet Implemented: to_phoebus_ballot")
     # hardcoded 0 answers
     from helios.models import Election
     cipher = self.get_cipher()
