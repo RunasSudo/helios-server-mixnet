@@ -304,7 +304,6 @@ class Election(HeliosModel):
       'randomize_answer_order': self.randomize_answer_order
       }
 
-  @property
   def result_choices(self, question=0):
     from phoebus import phoebus
     print self.questions
@@ -313,7 +312,8 @@ class Election(HeliosModel):
     print self.result
     results = []
     for result in self.result[question]:
-      results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result, nr_cands), nr_cands))
+      # TODO: Should I add the "+1" here or take out the "-1" in decrypt_from_factors?
+      results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result + 1, nr_cands), nr_cands))
     return results
 
   @property
@@ -857,9 +857,13 @@ class Election(HeliosModel):
     def hash(k):
       return ",".join([str(x) for x in k])
     results = []
-    results = map(hash, self.result_choices)
-    results = Counter(results)
-    return dict(results)
+    for q in xrange(0, len(self.questions)):
+      counter = Counter(map(hash, self.result_choices(question=q)))
+      result = {}
+      result['counter'] = dict(counter)
+      result['question'] = self.questions[q]['question']
+      results.append(result)
+    return results
   
   ##
   ## MIXES & PROOFS

@@ -1617,15 +1617,19 @@ def mixnets_num(request, election):
 @return_json
 def mixnets_answers(request, election, mixnet_index):
   mixnet = election.mixnets.filter()[int(mixnet_index)]
-  mixed_answers = mixnet.mixed_answers.filter()[0] # TODO: Deal with multiple questions
-  return mixed_answers.mixed_answers.toJSONDict()
+  answers = []
+  for mixed_answer in mixnet.mixed_answers.filter():
+    answers.append(mixed_answer.mixed_answers.toJSONDict())
+  return answers
 
 @election_view()
 @return_json
 def mixnets_proof(request, election, mixnet_index):
   mixnet = election.mixnets.filter()[int(mixnet_index)]
-  mixed_answers = mixnet.mixed_answers.filter()[0] # TODO: Deal with multiple questions
-  return json.loads(mixed_answers.shuffling_proof)
+  proofs = []
+  for mixed_answer in mixnet.mixed_answers.filter():
+    proofs.append(json.loads(mixed_answer.shuffling_proof))
+  return proofs
 
 
 def debugger(request):
