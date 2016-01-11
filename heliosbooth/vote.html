@@ -284,6 +284,10 @@ BOOTH.validate_and_confirm = function(question_num) {
 };
 
 BOOTH.next = function(question_num) {
+    if (BOOTH.election.questions[question_num].tally_type == "stv") {
+        BOOTH.stv_updated(question_num, $("#stv_answer").val());
+    }
+
     if (BOOTH.validate_question(question_num)) {
         BOOTH.show_question(question_num + 1);
     }

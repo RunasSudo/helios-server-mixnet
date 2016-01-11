@@ -132,15 +132,23 @@ class ElectionMixnet(HeliosModel):
     return votes
 
   @transaction.commit_on_success
-  def _do_mix_votes(self, mixnet):
-    votes = self.get_original_answers()
+  def _do_mix_one_question(self, mix_cls, q):
+    mixnet = mix_cls(self.election)
+    
+    votes = self.get_original_answers(question=q)
     # returns array of phoebus/MixedVote objects
-    new_votes, proof = mixnet.mix(self.election, votes, self.mix_order == 0)
-    self.mixed_answers.filter(question=0).delete()
-    mixed_votes = MixedAnswers(mixnet=self)
+    new_votes, proof = mixnet.mix(self.election, votes, self.mix_order == 0, question_num=q)
+    self.mixed_answers.filter(question=q).delete()
+    mixed_votes = MixedAnswers(mixnet=self, question=q)
     mixed_votes.mixed_answers = new_votes.ld_object
     mixed_votes.shuffling_proof = json_module.dumps(proof.to_dict())
     mixed_votes.save()
+
+  def _do_mix_votes(self, mix_cls):
+    for q in xrange(0, len(self.election.questions)):
+      self.election.append_log("mixnet %s started mixing question %d" % (self.name, q))
+      self._do_mix_one_question(mix_cls, q)
+      self.election.append_log("mixnet %s finished mixing question %d" % (self.name, q))
 
     self.mixing_finished_at = datetime.datetime.now()
     self.status = 'finished'
@@ -155,13 +163,12 @@ class ElectionMixnet(HeliosModel):
       #raise Exception("Remote mixnets not implemented yet.")
       return
 
-    mixnet = mix_cls(self.election)
     self.mixing_started_at = datetime.datetime.now()
     self.status = 'mixing'
     self.save()
 
     try:
-        self._do_mix_votes(mixnet)
+        self._do_mix_votes(mix_cls)
     except Exception, e:
         self.status = 'error'
         self.mix_error = traceback.format_exc()
@@ -297,15 +304,17 @@ class Election(HeliosModel):
       'randomize_answer_order': self.randomize_answer_order
       }
 
-  @property
-  def result_choices(self):
+  def result_choices(self, question=0):
     from phoebus import phoebus
     print self.questions
-    nr_cands = len(self.questions[0]['answers'])
+    nr_cands = len(self.questions[question]['answers'])
 
     print self.result
-    for result in self.result[0]:
-      yield phoebus.to_absolute_answers(phoebus.gamma_decode(result, nr_cands), nr_cands)
+    results = []
+    for result in self.result[question]:
+      # TODO: Should I add the "+1" here or take out the "-1" in decrypt_from_factors?
+      results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result + 1, nr_cands), nr_cands))
+    return results
 
   @property
   def pretty_type(self):
@@ -789,12 +798,13 @@ class Election(HeliosModel):
     return helios.views.get_election_url(self)
 
   def init_encrypted_tally(self):
-      answers = self.last_mixed_mixnet.mixed_answers.get(question=0).mixed_answers.answers
-      tally = self.init_tally()
-      tally.tally = [[]]
-      tally.tally[0] = [a.choice for a in answers]
-      self.encrypted_tally = tally
-      self.save()
+    tally = self.init_tally()
+    tally.tally = []
+    for q in xrange(0, len(self.questions)):
+      answers = self.last_mixed_mixnet.mixed_answers.get(question=q).mixed_answers.answers
+      tally.tally.append([a.choice for a in answers])
+    self.encrypted_tally = tally
+    self.save()
 
   def init_tally(self):
     return self.workflow.Tally(election=self)
@@ -847,9 +857,13 @@ class Election(HeliosModel):
     def hash(k):
       return ",".join([str(x) for x in k])
     results = []
-    results = map(hash, self.result_choices)
-    results = Counter(results)
-    return dict(results)
+    for q in xrange(0, len(self.questions)):
+      counter = Counter(map(hash, self.result_choices(question=q)))
+      result = {}
+      result['counter'] = dict(counter)
+      result['question'] = self.questions[q]['question']
+      results.append(result)
+    return results
   
   ##
   ## MIXES & PROOFS
