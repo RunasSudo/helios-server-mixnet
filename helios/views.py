@@ -683,6 +683,13 @@ def one_election_cast_confirm(request, election):
       'vote_hash': vote_fingerprint,
       'cast_at': datetime.datetime.utcnow()
     }
+    
+    if settings.LOG_VOTE_IP:
+#      if request.META.get('HTTP_X_FORWARDED_FOR'):
+#        # Real client IP is apparently guaranteed by Heroku to be the *last* item in the header.
+#        cast_vote_params['cast_from'] = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[-1]
+#      else:
+        cast_vote_params['cast_from'] = request.META.get('REMOTE_ADDR')
 
     cast_vote = CastVote(**cast_vote_params)
   else:

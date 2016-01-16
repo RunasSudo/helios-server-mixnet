@@ -1210,6 +1210,7 @@ class CastVote(HeliosModel):
   vote_tinyhash = models.CharField(max_length=50, null=True, unique=True)
 
   cast_at = models.DateTimeField(auto_now_add=True)
+  cast_from = models.GenericIPAddressField(null=True)
 
   # some ballots can be quarantined (this is not the same thing as provisional)
   quarantined_p = models.BooleanField(default=False, null=False)
