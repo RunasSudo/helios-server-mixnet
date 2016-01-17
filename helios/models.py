@@ -854,11 +854,11 @@ class Election(HeliosModel):
   @property
   def pretty_result(self):
     from helios.counter import Counter
-    def hash(k):
-      return ",".join([str(x) for x in k])
+    def pretty_answer(q, k):
+      return ", ".join([self.questions[q]['answers'][x] for x in k])
     results = []
     for q in xrange(0, len(self.questions)):
-      counter = Counter(map(hash, self.result_choices(question=q)))
+      counter = Counter([pretty_answer(q, k) for k in self.result_choices(question=q)])
       result = {}
       result['counter'] = dict(counter)
       result['question'] = self.questions[q]['question']
