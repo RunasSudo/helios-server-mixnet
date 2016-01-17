@@ -107,6 +107,11 @@ once you do this, the election will be immediately open for voting.
 {% else %}
 
 {% if not election.encrypted_tally %}
+{% if not election.voting_has_stopped %}
+<a href="{% url "helios.views.one_election_close_poll" election.uuid %}">close polls</a><br />
+Voters will be barred from voting, but the vote tracker will remain accessible,<br />
+and you may still exclude voters from the count.
+{% else %}
 {% if election.tallied %}
 <a href="{% url "helios.views.one_election_compute_tally" election.uuid %}">finalise encrypted tally</a><br />
 The encrypted votes will be combined into an encrypted tally. Once this is done,<br />
@@ -119,6 +124,7 @@ Reload this page in a couple of minutes.
 <a href="{% url "helios.views.one_election_compute_tally" election.uuid %}">compute encrypted tally</a><br />
 The encrypted votes will be combined into an encrypted tally. Once this is done,<br />
 trustees will be asked to provide their share of the decryption.
+{% endif %}
 {% endif %}
 {% endif %}
 {% else %}

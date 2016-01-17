@@ -1039,6 +1039,22 @@ def _check_election_tally_type(election):
   return election.workflow_type in ["homomorphic", "mixnet"]
 
 @election_admin(frozen=True)
+def one_election_close_poll(request, election):
+  if not _check_election_tally_type(election):
+    return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(one_election_view,args=[election.election_id]))
+  
+  if request.method == "GET":
+    return render_template(request, 'election_close_poll', {'election': election})
+  
+  check_csrf(request)
+  
+  if not election.voting_ended_at:
+    election.voting_ended_at = datetime.datetime.utcnow()
+    election.save()
+  
+  return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(one_election_view,args=[election.uuid]))
+
+@election_admin(frozen=True)
 def one_election_compute_tally(request, election):
   """
   tallying is done all at a time now

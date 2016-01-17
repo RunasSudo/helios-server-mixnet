@@ -61,6 +61,7 @@ urlpatterns = patterns('',
     (r'^/freeze$', one_election_freeze), # includes freeze_2 as POST target
 
     # computing tally
+    (r'^/close_poll$', one_election_close_poll),
     (r'^/compute_tally$', one_election_compute_tally),
     (r'^/combine_decryptions$', combine_decryptions),
     (r'^/release_result$', release_result),

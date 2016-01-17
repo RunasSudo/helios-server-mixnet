@@ -1,0 +1,33 @@
+{% extends TEMPLATE_BASE %}
+
+{% block title %}Close Polls for {{election.name}}{% endblock %}
+
+{% block content %}
+  <h2 class="title">Close Polls for Election: {{election.name}}</h2>
+
+<div id="instructions">
+{% if election.num_cast_votes %}
+<p>
+    You are about to close the polls for election <b>{{election.name}}</b>.
+</p>
+
+<p>
+    Once you do this, voters will no longer be able to cast a ballot.
+</p>
+
+<form method="post" action="" class="pretty">
+<input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+    
+<input class="pretty" type="submit" value="close polls" />
+<button onclick="document.location='./view'; return false;">never mind</button>
+</form>
+{% else %}
+<p>
+No votes have been cast in this election. At least one vote must be cast before you close the polls.<br /><br />
+<a href="./view">back to election</a>
+</p>
+{% endif %}
+</div>
+
+<br /><br />
+{% endblock %}
