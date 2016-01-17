@@ -184,18 +184,18 @@ STV.gamma_encode = function(choices, nr_candidates, max_choices) {
     params = STV.get_choice_params(nr_choices, nr_candidates, max_choices);
     nr_candidates = params.nr_candidates;
     max_choices = params.max_choices;
-
-    if (!nr_choices) { return 0 };
+    
+    if (!nr_choices) { return BigInt.ONE };
     
     offsets = STV.get_offsets(nr_candidates);
-
+    
     sumus = offsets[nr_choices-1];
     b = nr_candidates - nr_choices;
     i = 1;
-
+    
     ichoices = choices.slice(0)
     ichoices.reverse();
-
+    
     while (1) {
         f = STV.get_factor(b, i);
         f = f.multiply(new BigInt(''+ichoices[i-1], 10));
@@ -203,7 +203,9 @@ STV.gamma_encode = function(choices, nr_candidates, max_choices) {
         if (i >= nr_choices) { break; }
         i++;
     }
-
+    
+    sumus = sumus.add(BigInt.ONE);
+    
     return sumus;
 }
 
@@ -213,7 +215,8 @@ STV.gamma_decode = function(sumus, nr_candidates, max_choices) {
     nr_candidates = params.nr_candidates;
     max_choices = params.max_choices;
 
-    if (sumus <= 0) { return [] };
+    sumus = sumus.subtract(BigInt.ONE);
+    if (sumus.compareTo(BigInt.ZERO) <= 0) { return [] };
 
     offsets = STV.get_offsets(nr_candidates);
     nr_choices = UTILS.bisect_right(offsets, sumus);

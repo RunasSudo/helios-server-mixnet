@@ -312,8 +312,7 @@ class Election(HeliosModel):
     print self.result
     results = []
     for result in self.result[question]:
-      # TODO: Should I add the "+1" here or take out the "-1" in decrypt_from_factors?
-      results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result + 1, nr_cands), nr_cands))
+      results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result, nr_cands), nr_cands))
     return results
 
   @property
@@ -855,6 +854,8 @@ class Election(HeliosModel):
   def pretty_result(self):
     from helios.counter import Counter
     def pretty_answer(q, k):
+      if len(k) == 0:
+        return "<blank votes>"
       return ", ".join([self.questions[q]['answers'][x] for x in k])
     results = []
     for q in xrange(0, len(self.questions)):

@@ -229,10 +229,11 @@ BOOTH.launch_async_encryption_answer = function(question_num) {
 // check if the current question is ok
 BOOTH.validate_question = function(question_num) {
   if (BOOTH.election.questions[question_num].tally_type == "stv") {
-      var answer = BOOTH.ballot.answers[question_num];
-      var question = BOOTH.election.questions[question_num];
+    var answer = BOOTH.ballot.answers[question_num];
+    var question = BOOTH.election.questions[question_num];
 
-      if (answer.length > question.answers.length) {
+    if (answer.length > 0) {
+      if (answer[0].length > question.answers.length) {
         alert('You need to select at most ' + BOOTH.election.questions[question_num].answers.length + ' answer(s).');
         return false;
       }
@@ -251,26 +252,27 @@ BOOTH.validate_question = function(question_num) {
     
       alert('Invalid selection');
       return false;
-    };
-
-    } else {
-      // check if enough answers are checked
-      if (BOOTH.ballot.answers[question_num].length < BOOTH.election.questions[question_num].min) {
-          alert('You need to select at least ' + BOOTH.election.questions[question_num].min + ' answer(s).');
-          return false;
-      }
     }
+  };
+
+  } else {
+    // check if enough answers are checked
+    if (BOOTH.ballot.answers[question_num].length < BOOTH.election.questions[question_num].min) {
+      alert('You need to select at least ' + BOOTH.election.questions[question_num].min + ' answer(s).');
+      return false;
+    }
+  }
 
     // if we need to launch the worker, let's do it
-    if (!BOOTH.synchronous) {
-       // we need a unique ID for this to ensure that old results
-       // don't mess things up. Using timestamp.
-       // check if dirty
-       if (BOOTH.dirty[question_num]) {
-         BOOTH.launch_async_encryption_answer(question_num);
-       }
+  if (!BOOTH.synchronous) {
+    // we need a unique ID for this to ensure that old results
+    // don't mess things up. Using timestamp.
+    // check if dirty
+    if (BOOTH.dirty[question_num]) {
+      BOOTH.launch_async_encryption_answer(question_num);
     }
-    return true;
+  }
+  return true;
 };
 
 BOOTH.validate_and_confirm = function(question_num) {
