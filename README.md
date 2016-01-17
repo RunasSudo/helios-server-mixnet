@@ -7,11 +7,12 @@ This is a fork of Ben Adida's Helios server, with support for mixnets using code
 ## Features
 
 * This fork produces a tally of the ballots cast, like Zeus. This allows it to be used in voting systems other than approval voting (which is supported by Helios), since the vote tally can be fed to any other system that actually produces the election results.
-  * A drag-and-drop interface for STV is implemented, but no actual counting.
-* Reddit authentication support.
+  * A drag-and-drop interface for STV is implemented, and a standalone counter.
+* Optional reddit authentication support.
 * Improved support for password authentication.
 * Group voting ticket support.
   * Input candidates using the format `Name/Party/1`, where the candidates are sorted within the GVT by the number (can be a decimal).
+* Optional IP logging support.
 
 ## Licence
 
