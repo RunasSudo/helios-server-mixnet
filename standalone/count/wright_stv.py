@@ -21,7 +21,8 @@ import json, sys
 
 electionIn = sys.argv[1]
 resultIn = sys.argv[2]
-numSeats = int(sys.argv[3])
+question = int(sys.argv[3])
+numSeats = int(sys.argv[4])
 
 class Ballot:
 	def __init__(self, preferences):
@@ -38,14 +39,14 @@ with open(electionIn, 'r') as electionFile:
 	election = json.load(electionFile)
 	
 	candidates = []
-	for candidate in election["questions"][0]["answers"]:
+	for candidate in election["questions"][question]["answers"]:
 		candidates.append(Candidate(candidate))
 	
 	with open(resultIn, 'r') as resultFile:
 		results = json.load(resultFile)
 		
 		ballots = []
-		for result in results[0]:
+		for result in results[question]:
 			ballots.append(Ballot(utils.gamma_decode(result, len(candidates))))
 
 def distributePreferences(ballots, candidates, remainingCandidates):
@@ -57,7 +58,7 @@ def distributePreferences(ballots, candidates, remainingCandidates):
 	exhausted = 0
 	
 	for ballot in ballots:
-		isExhaused = True
+		isExhausted = True
 		for preference in ballot.preferences:
 			if preference in remainingCandidates:
 				candidates[preference].ctvv += ballot.value

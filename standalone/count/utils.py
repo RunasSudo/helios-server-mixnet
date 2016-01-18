@@ -20,6 +20,7 @@ def gamma_decode(sumus, nr_candidates=None, max_choices=None):
     nr_candidates, max_choices = \
         get_choice_params(nr_candidates, nr_candidates, max_choices)
 
+    sumus -= 1
     if sumus <= 0:
         return []
 
