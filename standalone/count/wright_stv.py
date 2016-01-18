@@ -145,11 +145,15 @@ def countVotes(ballots, candidates):
 						return provisionallyElected
 			mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
-		remainingCandidates.sort(key=lambda k: candidates[k].ctvv, reverse=True)
+		remainingCandidates.sort(key=lambda k: candidates[k].ctvv)
 		
-		print("---- Excluding {}".format(candidates[remainingCandidates.pop()].name))
+		# Check for a tie
+		if len(remainingCandidates) > 1:
+			if "{:.2f}".format(candidates[remainingCandidates[0]].ctvv) == "{:.2f}".format(candidates[remainingCandidates[1]].ctvv):
+				raise Exception("Draw for fewest votes. Manual intervention required.")
 		
-		printVotes(candidates, provisionallyElected, remainingCandidates)
+		print("---- Excluding {}".format(candidates[0].name))
+		remainingCandidates.pop(0)
 		
 		if len(remainingCandidates) == numSeats:
 			for candidate in remainingCandidates:
