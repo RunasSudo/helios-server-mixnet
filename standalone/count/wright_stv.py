@@ -52,17 +52,24 @@ def resetCount(ballots, candidates):
 def distributePreferences(ballots, remainingCandidates):
 	exhausted = 0
 	
-	for ballot in ballots:
+	for key, group in itertools.groupby(sorted(ballots, key=lambda k: k.gamma), lambda k: k.gamma):
 		isExhausted = True
-		for preference in ballot.preferences:
+		for preference in Ballot.gammaToCandidates(key, candidates):
 			if preference in remainingCandidates:
-				preference.ctvv += ballot.value
-				preference.ballots.append(ballot)
+				assigned = 0
 				isExhausted = False
+				for ballot in group:
+					assigned += ballot.value
+					preference.ctvv += ballot.value
+					preference.ballots.append(ballot)
+				
+				print("---- Assigned {} votes to {} via {}".format(assigned, preference.name, key))
 				break
 		if isExhausted:
-			exhausted += ballot.value
-			ballot.value = 0
+			for ballot in group:
+				exhausted += ballot.value
+				ballot.value = 0
+			print("---- Exhausted {} votes via {}".format(exhausted, key))
 	
 	return exhausted
 
@@ -194,7 +201,9 @@ print()
 print("The winners are, in order of election:")
 
 resetCount(ballots, provisionallyElected)
-distributePreferences(ballots, provisionallyElected)
+exhausted = distributePreferences(ballots, provisionallyElected)
 provisionallyElected.sort(key=lambda k: k.ctvv, reverse=True)
 
 printVotes(provisionallyElected, provisionallyElected)
+
+print("---- Exhausted: {}".format(exhausted))
