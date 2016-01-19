@@ -17,7 +17,7 @@
 # I love the smell of Python 3 in the morning
 
 import utils
-import json, sys
+import itertools, json, sys
 
 electionIn = sys.argv[1]
 resultIn = sys.argv[2]
@@ -25,8 +25,9 @@ question = int(sys.argv[3])
 numSeats = int(sys.argv[4])
 
 class Ballot:
-	def __init__(self, preferences):
-		self.preferences = preferences
+	def __init__(self, gamma, candidates):
+		self.gamma = gamma
+		self.preferences = utils.gamma_decode(gamma, candidates)
 		self.value = 1
 
 class Candidate:
@@ -47,7 +48,7 @@ with open(electionIn, 'r') as electionFile:
 		
 		ballots = []
 		for result in results[question]:
-			ballots.append(Ballot(utils.gamma_decode(result, len(candidates))))
+			ballots.append(Ballot(result, len(candidates)))
 
 def distributePreferences(ballots, candidates, remainingCandidates):
 	for ballot in ballots:
@@ -77,17 +78,13 @@ def totalVote(candidates):
 		tv += candidate.ctvv
 	return tv
 
-def surplusTransfer(ballot, fromCandidate, candidates, provisionallyElected, remainingCandidates, multiplier):
-	#print(ballot.preferences)
-	beginPreference = ballot.preferences.index(fromCandidate)
-	for index in range(beginPreference + 1, len(ballot.preferences)):
-		preference = ballot.preferences[index]
+# Return the candidate index to transfer votes to
+def surplusTransfer(preferences, fromCandidate, candidates, provisionallyElected, remainingCandidates):
+	beginPreference = preferences.index(fromCandidate)
+	for index in range(beginPreference + 1, len(preferences)):
+		preference = preferences[index]
 		if preference in remainingCandidates and candidates[preference] not in provisionallyElected:
-			print("---- Transferring {} votes from {} to {} at value {}".format(ballot.value, candidates[fromCandidate].name, candidates[preference].name, ballot.value * multiplier))
-			ballot.value *= multiplier
-			candidates[preference].ctvv += ballot.value
-			candidates[preference].ballots.append(ballot)
-			return True
+			return preference
 	return False
 
 def printVotes(candidates, provisionallyElected, remainingCandidates):
@@ -123,14 +120,25 @@ def countVotes(ballots, candidates):
 		
 		mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
-		while mostVotesElected and mostVotesElected[0].ctvv > quota: # While surpluses remain
+		# While surpluses remain
+		while mostVotesElected and mostVotesElected[0].ctvv > quota:
 			for candidate in mostVotesElected:
 				if candidate.ctvv > quota:
 					multiplier = (candidate.ctvv - quota) / candidate.ctvv
 					
-					for ballot in candidate.ballots:
-						if not surplusTransfer(ballot, candidates.index(candidate), candidates, provisionallyElected, remainingCandidates, multiplier):
-							exhausted += ballot.value
+					for key, group in itertools.groupby(sorted(candidate.ballots, key=lambda k: k.gamma), lambda k: k.gamma):
+						transferTo = surplusTransfer(utils.gamma_decode(key, len(candidates)), candidates.index(candidate), candidates, provisionallyElected, remainingCandidates)
+						if transferTo == False:
+							for ballot in group:
+								exhausted += ballot.value
+						else:
+							transferred = 0
+							for ballot in group:
+								transferred += ballot.value
+								ballot.value *= multiplier
+								candidates[transferTo].ctvv += ballot.value
+								candidates[transferTo].ballots.append(ballot)
+							print("---- Transferred {} votes from {} to {} at value {} via {}".format(transferred, candidate.name, candidates[transferTo].name, multiplier, key))
 					
 					candidate.ctvv = quota
 					
@@ -152,7 +160,7 @@ def countVotes(ballots, candidates):
 			if "{:.2f}".format(candidates[remainingCandidates[0]].ctvv) == "{:.2f}".format(candidates[remainingCandidates[1]].ctvv):
 				raise Exception("Draw for fewest votes. Manual intervention required.")
 		
-		print("---- Excluding {}".format(candidates[0].name))
+		print("---- Excluding {}".format(candidates[remainingCandidates[0]].name))
 		remainingCandidates.pop(0)
 		
 		if len(remainingCandidates) == numSeats:
