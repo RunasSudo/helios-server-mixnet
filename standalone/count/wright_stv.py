@@ -197,12 +197,13 @@ with open(electionIn, 'r') as electionFile:
 provisionallyElected = countVotes(ballots, candidates)
 print()
 print("== TALLY COMPLETE")
-print()
-print("The winners are, in order of election:")
 
 resetCount(ballots, provisionallyElected)
 exhausted = distributePreferences(ballots, provisionallyElected)
 provisionallyElected.sort(key=lambda k: k.ctvv, reverse=True)
+
+print()
+print("The winners are, in order of election:")
 
 printVotes(provisionallyElected, provisionallyElected)
 
