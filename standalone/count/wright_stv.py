@@ -27,43 +27,37 @@ numSeats = int(sys.argv[4])
 class Ballot:
 	def __init__(self, gamma, candidates):
 		self.gamma = gamma
-		self.preferences = utils.gamma_decode(gamma, candidates)
+		self.preferences = Ballot.gammaToCandidates(gamma, candidates)
 		self.value = 1
+	
+	def gammaToCandidates(gamma, candidates):
+		return [candidates[x] for x in utils.gamma_decode(gamma, len(candidates))]
 
 class Candidate:
 	def __init__(self, name):
 		self.name = name
 		self.ctvv = 0
 		self.ballots = []
-
-with open(electionIn, 'r') as electionFile:
-	election = json.load(electionFile)
 	
-	candidates = []
-	for candidate in election["questions"][question]["answers"]:
-		candidates.append(Candidate(candidate))
-	
-	with open(resultIn, 'r') as resultFile:
-		results = json.load(resultFile)
-		
-		ballots = []
-		for result in results[question]:
-			ballots.append(Ballot(result, len(candidates)))
+	def shortCtvv(self):
+		return "{:.5f}".format(self.ctvv)
 
-def distributePreferences(ballots, candidates, remainingCandidates):
+def resetCount(ballots, candidates):
 	for ballot in ballots:
 		ballot.value = 1
 	for candidate in candidates:
 		candidate.ctvv = 0
 		candidate.ballots.clear()
+
+def distributePreferences(ballots, remainingCandidates):
 	exhausted = 0
 	
 	for ballot in ballots:
 		isExhausted = True
 		for preference in ballot.preferences:
 			if preference in remainingCandidates:
-				candidates[preference].ctvv += ballot.value
-				candidates[preference].ballots.append(ballot)
+				preference.ctvv += ballot.value
+				preference.ballots.append(ballot)
 				isExhausted = False
 				break
 		if isExhausted:
@@ -78,42 +72,43 @@ def totalVote(candidates):
 		tv += candidate.ctvv
 	return tv
 
-# Return the candidate index to transfer votes to
-def surplusTransfer(preferences, fromCandidate, candidates, provisionallyElected, remainingCandidates):
+# Return the candidate to transfer votes to
+def surplusTransfer(preferences, fromCandidate, provisionallyElected, remainingCandidates):
 	beginPreference = preferences.index(fromCandidate)
 	for index in range(beginPreference + 1, len(preferences)):
 		preference = preferences[index]
-		if preference in remainingCandidates and candidates[preference] not in provisionallyElected:
+		if preference in remainingCandidates and preference not in provisionallyElected:
 			return preference
 	return False
 
-def printVotes(candidates, provisionallyElected, remainingCandidates):
+def printVotes(remainingCandidates, provisionallyElected):
 	print()
 	for candidate in remainingCandidates:
-		print("    {}{}: {}".format("*" if candidates[candidate] in provisionallyElected else " ", candidates[candidate].name, candidates[candidate].ctvv))
+		print("    {}{}: {}".format("*" if candidate in provisionallyElected else " ", candidate.name, candidate.ctvv))
 	print()
 
 def countVotes(ballots, candidates):
 	count = 1
-	remainingCandidates = list(range(0, len(candidates)))
+	remainingCandidates = candidates[:]
 	while True:
 		print()
 		print("== COUNT {}".format(count))
 		exhausted = 0
 		provisionallyElected = []
 		
-		exhausted += distributePreferences(ballots, candidates, remainingCandidates)
+		resetCount(ballots, candidates)
+		exhausted += distributePreferences(ballots, remainingCandidates)
 		
-		printVotes(candidates, provisionallyElected, remainingCandidates)
+		printVotes(remainingCandidates, provisionallyElected)
 		
 		quota = totalVote(candidates) / (numSeats + 1)
 		print("---- Exhausted: {}".format(exhausted))
 		print("---- Quota: {}".format(quota))
 		
 		for candidate in remainingCandidates:
-			if candidates[candidate].ctvv > quota:
-				print("**** {} provisionally elected".format(candidates[candidate].name))
-				provisionallyElected.append(candidates[candidate])
+			if candidate.ctvv > quota:
+				print("**** {} provisionally elected".format(candidate.name))
+				provisionallyElected.append(candidate)
 		
 		if len(provisionallyElected) == numSeats:
 			return provisionallyElected
@@ -127,7 +122,7 @@ def countVotes(ballots, candidates):
 					multiplier = (candidate.ctvv - quota) / candidate.ctvv
 					
 					for key, group in itertools.groupby(sorted(candidate.ballots, key=lambda k: k.gamma), lambda k: k.gamma):
-						transferTo = surplusTransfer(utils.gamma_decode(key, len(candidates)), candidates.index(candidate), candidates, provisionallyElected, remainingCandidates)
+						transferTo = surplusTransfer(Ballot.gammaToCandidates(key, candidates), candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
 							for ballot in group:
 								exhausted += ballot.value
@@ -136,46 +131,70 @@ def countVotes(ballots, candidates):
 							for ballot in group:
 								transferred += ballot.value
 								ballot.value *= multiplier
-								candidates[transferTo].ctvv += ballot.value
-								candidates[transferTo].ballots.append(ballot)
-							print("---- Transferred {} votes from {} to {} at value {} via {}".format(transferred, candidate.name, candidates[transferTo].name, multiplier, key))
+								transferTo.ctvv += ballot.value
+								transferTo.ballots.append(ballot)
+							print("---- Transferred {} votes from {} to {} at value {} via {}".format(transferred, candidate.name, transferTo.name, multiplier, key))
 					
 					candidate.ctvv = quota
 					
-					printVotes(candidates, provisionallyElected, remainingCandidates)
+					printVotes(remainingCandidates, provisionallyElected)
 					
 					for candidate in remainingCandidates:
-						if candidates[candidate].ctvv > quota:
-							print("**** {} provisionally elected".format(candidates[candidate].name))
-							provisionallyElected.append(candidates[candidate])
+						if candidate.ctvv > quota:
+							print("**** {} provisionally elected".format(candidate.name))
+							provisionallyElected.append(candidate)
 					
 					if len(provisionallyElected) == numSeats:
 						return provisionallyElected
 			mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
-		remainingCandidates.sort(key=lambda k: candidates[k].ctvv)
+		remainingCandidates.sort(key=lambda k: k.ctvv)
+		
+		toExclude = 0
 		
 		# Check for a tie
-		if len(remainingCandidates) > 1:
-			if "{:.2f}".format(candidates[remainingCandidates[0]].ctvv) == "{:.2f}".format(candidates[remainingCandidates[1]].ctvv):
-				raise Exception("Draw for fewest votes. Manual intervention required.")
+		if len(remainingCandidates) > 1 and remainingCandidates[0].shortCtvv() == remainingCandidates[1].shortCtvv():
+			print("---- There is a tie for last place:")
+			for i in range(0, len(remainingCandidates)):
+				if remainingCandidates[i].shortCtvv() == remainingCandidates[0].shortCtvv():
+					print("     {}. {}".format(i, remainingCandidates[i].name))
+			print("---- Which candidate to exclude?")
+			toExclude = int(input())
 		
-		print("---- Excluding {}".format(candidates[remainingCandidates[0]].name))
-		remainingCandidates.pop(0)
+		print("---- Excluding {}".format(remainingCandidates[toExclude].name))
+		remainingCandidates.pop(toExclude)
 		
 		if len(remainingCandidates) == numSeats:
 			for candidate in remainingCandidates:
-				if candidates[candidate] not in provisionallyElected:
-					print("**** {} provisionally elected".format(candidates[candidate].name))
-					provisionallyElected.append(candidates[candidate])
+				if candidate not in provisionallyElected:
+					print("**** {} provisionally elected".format(candidate.name))
+					provisionallyElected.append(candidate)
 			return provisionallyElected
 		
 		count += 1
+
+with open(electionIn, 'r') as electionFile:
+	election = json.load(electionFile)
+	
+	candidates = []
+	for candidate in election["questions"][question]["answers"]:
+		candidates.append(Candidate(candidate.split("/")[0])) # Just want the name
+	
+	with open(resultIn, 'r') as resultFile:
+		results = json.load(resultFile)
+		
+		ballots = []
+		for result in results[question]:
+			ballots.append(Ballot(result, candidates))
 
 provisionallyElected = countVotes(ballots, candidates)
 print()
 print("== TALLY COMPLETE")
 print()
 print("The winners are, in order of election:")
-for candidate in provisionallyElected:
-	print("-- {}".format(candidate.name))
+
+resetCount(ballots, provisionallyElected)
+distributePreferences(ballots, provisionallyElected)
+provisionallyElected.sort(key=lambda k: k.ctvv, reverse=True)
+
+printVotes(provisionallyElected, provisionallyElected)
