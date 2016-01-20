@@ -29,9 +29,10 @@ class Ballot:
 		self.gamma = gamma
 		self.preferences = Ballot.gammaToCandidates(gamma, candidates)
 		self.value = 1
+		print([x.name for x in self.preferences])
 	
 	def gammaToCandidates(gamma, candidates):
-		return [candidates[x] for x in utils.gamma_decode(gamma, len(candidates))]
+		return [candidates[x] for x in utils.to_absolute_answers(utils.gamma_decode(gamma, len(candidates)), len(candidates))]
 
 class Candidate:
 	def __init__(self, name):
@@ -113,7 +114,7 @@ def countVotes(ballots, candidates):
 		print("---- Quota: {}".format(quota))
 		
 		for candidate in remainingCandidates:
-			if candidate.ctvv > quota:
+			if candidates not in provisionallyElected and candidate.ctvv > quota:
 				print("**** {} provisionally elected".format(candidate.name))
 				provisionallyElected.append(candidate)
 		
@@ -147,7 +148,7 @@ def countVotes(ballots, candidates):
 					printVotes(remainingCandidates, provisionallyElected)
 					
 					for candidate in remainingCandidates:
-						if candidate.ctvv > quota:
+						if candidate not in provisionallyElected and candidate.ctvv > quota:
 							print("**** {} provisionally elected".format(candidate.name))
 							provisionallyElected.append(candidate)
 					

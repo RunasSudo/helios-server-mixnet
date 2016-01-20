@@ -16,6 +16,57 @@
 
 from bisect import bisect_right
 
+def to_relative_answers(choices, nr_candidates):
+    """
+    Answer choices helper, convert absolute indexed answers to relative.
+
+    e.g. for candidates [A, B, C] absolute choices [1, 2, 0] will be converted
+    to [1, 1, 0].
+    """
+    relative = []
+    candidates = list(range(nr_candidates))
+    choices = [candidates.index(c) for c in choices]
+    for choice in choices:
+        index = candidates.index(choice)
+        relative.append(index)
+        candidates.remove(choice)
+
+    return relative
+
+def to_absolute_answers(choices, nr_candidates):
+    """
+    Inverts `to_relative_answers` result.
+    """
+    absolute_choices = []
+    candidates = list(range(nr_candidates))
+    tmp_cands = candidates[:]
+    for choice in choices:
+        choice = tmp_cands[choice]
+        absolute_choices.append(candidates.index(choice))
+        tmp_cands.remove(choice)
+    return absolute_choices
+
+def gamma_encode(choices, nr_candidates=None, max_choices=None):
+    nr_choices = len(choices)
+    nr_candidates, max_choices = \
+        get_choice_params(nr_choices, nr_candidates, max_choices)
+    if not nr_choices:
+        return 0
+
+    offsets = get_offsets(nr_candidates)
+    sumus = offsets[nr_choices - 1]
+
+    b = nr_candidates - nr_choices
+    i = 1
+    while 1:
+        sumus += choices[-i] * get_factor(b, i)
+        if i >= nr_choices:
+            break
+        i += 1
+
+    sumus += 1
+    return sumus
+
 def gamma_decode(sumus, nr_candidates=None, max_choices=None):
     nr_candidates, max_choices = \
         get_choice_params(nr_candidates, nr_candidates, max_choices)
