@@ -18,6 +18,7 @@
 
 import utils
 import itertools, json, sys
+from fractions import Fraction
 
 electionIn = sys.argv[1]
 resultIn = sys.argv[2]
@@ -28,7 +29,7 @@ class Ballot:
 	def __init__(self, gamma, candidates):
 		self.gamma = gamma
 		self.preferences = Ballot.gammaToCandidates(gamma, candidates)
-		self.value = 1
+		self.value = Fraction('1')
 		print([x.name for x in self.preferences])
 	
 	def gammaToCandidates(gamma, candidates):
@@ -37,45 +38,42 @@ class Ballot:
 class Candidate:
 	def __init__(self, name):
 		self.name = name
-		self.ctvv = 0
+		self.ctvv = Fraction('0')
 		self.ballots = []
-	
-	def shortCtvv(self):
-		return "{:.5f}".format(self.ctvv)
 
 def resetCount(ballots, candidates):
 	for ballot in ballots:
-		ballot.value = 1
+		ballot.value = Fraction('1')
 	for candidate in candidates:
-		candidate.ctvv = 0
+		candidate.ctvv = Fraction('0')
 		candidate.ballots.clear()
 
 def distributePreferences(ballots, remainingCandidates):
-	exhausted = 0
+	exhausted = Fraction('0')
 	
 	for key, group in itertools.groupby(sorted(ballots, key=lambda k: k.gamma), lambda k: k.gamma):
 		isExhausted = True
 		for preference in Ballot.gammaToCandidates(key, candidates):
 			if preference in remainingCandidates:
-				assigned = 0
+				assigned = Fraction('0')
 				isExhausted = False
 				for ballot in group:
 					assigned += ballot.value
 					preference.ctvv += ballot.value
 					preference.ballots.append(ballot)
 				
-				print("---- Assigned {} votes to {} via {}".format(assigned, preference.name, key))
+				print("---- Assigned {:.2f} votes to {} via {}".format(float(assigned), preference.name, key))
 				break
 		if isExhausted:
 			for ballot in group:
 				exhausted += ballot.value
-				ballot.value = 0
-			print("---- Exhausted {} votes via {}".format(exhausted, key))
+				ballot.value = Fraction('0')
+			print("---- Exhausted {:.2f} votes via {}".format(float(exhausted), key))
 	
 	return exhausted
 
 def totalVote(candidates):
-	tv = 0
+	tv = Fraction('0')
 	for candidate in candidates:
 		tv += candidate.ctvv
 	return tv
@@ -92,7 +90,7 @@ def surplusTransfer(preferences, fromCandidate, provisionallyElected, remainingC
 def printVotes(remainingCandidates, provisionallyElected):
 	print()
 	for candidate in remainingCandidates:
-		print("    {}{}: {}".format("*" if candidate in provisionallyElected else " ", candidate.name, candidate.ctvv))
+		print("    {}{}: {:.2f}".format("*" if candidate in provisionallyElected else " ", candidate.name, float(candidate.ctvv)))
 	print()
 
 def countVotes(ballots, candidates):
@@ -109,9 +107,9 @@ def countVotes(ballots, candidates):
 		printVotes(remainingCandidates, provisionallyElected)
 		
 		quota = totalVote(candidates) / (numSeats + 1)
-		#quota = int(totalVote(candidates) / (numSeats + 1) + 1)
-		print("---- Exhausted: {}".format(exhausted))
-		print("---- Quota: {}".format(quota))
+		#quota = (totalVote(candidates) / (numSeats + 1) + 1).__floor__()
+		print("---- Exhausted: {:.2f}".format(float(exhausted)))
+		print("---- Quota: {:.2f}".format(float(quota)))
 		
 		remainingCandidates = sorted(remainingCandidates, key=lambda k: k.ctvv, reverse=True)
 		for candidate in remainingCandidates:
@@ -129,24 +127,24 @@ def countVotes(ballots, candidates):
 			for candidate in mostVotesElected:
 				if candidate.ctvv > quota:
 					multiplier = (candidate.ctvv - quota) / candidate.ctvv
-					print("---- Transferring surplus from {} at value {}".format(candidate.name, multiplier))
+					print("---- Transferring surplus from {} at value {:.2f}".format(candidate.name, float(multiplier)))
 					
 					for key, group in itertools.groupby(sorted(candidate.ballots, key=lambda k: k.gamma), lambda k: k.gamma):
 						transferTo = surplusTransfer(Ballot.gammaToCandidates(key, candidates), candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
-							transferred = 0
+							transferred = Fraction('0')
 							for ballot in group:
 								transferred += ballot.value
 							exhausted += transferred
-							print("---- Exhausted {} votes via {}".format(transferred, key))
+							print("---- Exhausted {:.2f} votes via {}".format(float(transferred), key))
 						else:
-							transferred = 0
+							transferred = Fraction('0')
 							for ballot in group:
 								transferred += ballot.value
 								ballot.value *= multiplier
 								transferTo.ctvv += ballot.value
 								transferTo.ballots.append(ballot)
-							print("---- Transferred {} votes to {} via {}".format(transferred, transferTo.name, key))
+							print("---- Transferred {:.2f} votes to {} via {}".format(float(transferred), transferTo.name, key))
 					
 					candidate.ctvv = quota
 					
@@ -163,7 +161,7 @@ def countVotes(ballots, candidates):
 		
 		# Bulk exclude as many candidates as possible
 		candidatesToExclude = []
-		votesToExclude = 0
+		votesToExclude = Fraction('0')
 		
 		remainingCandidates.sort(key=lambda k: k.ctvv)
 		grouped = [(x, list(y)) for x, y in itertools.groupby(remainingCandidates, lambda k: k.ctvv)] # ily python
@@ -194,10 +192,10 @@ def countVotes(ballots, candidates):
 			# Just exclude one candidate then
 			# Check for a tie
 			toExclude = 0
-			if len(remainingCandidates) > 1 and remainingCandidates[0].shortCtvv() == remainingCandidates[1].shortCtvv():
+			if len(remainingCandidates) > 1 and remainingCandidates[0].ctvv == remainingCandidates[1].ctvv:
 				print("---- There is a tie for last place:")
 				for i in range(0, len(remainingCandidates)):
-					if remainingCandidates[i].shortCtvv() == remainingCandidates[0].shortCtvv():
+					if remainingCandidates[i].ctvv == remainingCandidates[0].ctvv:
 						print("     {}. {}".format(i, remainingCandidates[i].name))
 				print("---- Which candidate to exclude?")
 				toExclude = int(input())
@@ -240,4 +238,4 @@ for candidate in provisionallyElected:
 	print("     {}".format(candidate.name))
 print()
 
-print("---- Exhausted: {}".format(exhausted))
+print("---- Exhausted: {:.2f}".format(float(exhausted)))
