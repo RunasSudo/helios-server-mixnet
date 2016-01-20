@@ -109,12 +109,14 @@ def countVotes(ballots, candidates):
 		printVotes(remainingCandidates, provisionallyElected)
 		
 		quota = totalVote(candidates) / (numSeats + 1)
+		#quota = int(totalVote(candidates) / (numSeats + 1) + 1)
 		print("---- Exhausted: {}".format(exhausted))
 		print("---- Quota: {}".format(quota))
 		
 		remainingCandidates = sorted(remainingCandidates, key=lambda k: k.ctvv, reverse=True)
 		for candidate in remainingCandidates:
 			if candidates not in provisionallyElected and candidate.ctvv > quota:
+			#if candidates not in provisionallyElected and candidate.ctvv >= quota:
 				print("**** {} provisionally elected".format(candidate.name))
 				provisionallyElected.append(candidate)
 		
@@ -159,19 +161,49 @@ def countVotes(ballots, candidates):
 						return provisionallyElected, exhausted
 			mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
-		# Check for a tie
-		remainingCandidates.sort(key=lambda k: k.ctvv)
-		toExclude = 0
-		if len(remainingCandidates) > 1 and remainingCandidates[0].shortCtvv() == remainingCandidates[1].shortCtvv():
-			print("---- There is a tie for last place:")
-			for i in range(0, len(remainingCandidates)):
-				if remainingCandidates[i].shortCtvv() == remainingCandidates[0].shortCtvv():
-					print("     {}. {}".format(i, remainingCandidates[i].name))
-			print("---- Which candidate to exclude?")
-			toExclude = int(input())
+		# Bulk exclude as many candidates as possible
+		candidatesToExclude = []
+		votesToExclude = 0
 		
-		print("---- Excluding {}".format(remainingCandidates[toExclude].name))
-		remainingCandidates.pop(toExclude)
+		remainingCandidates.sort(key=lambda k: k.ctvv)
+		grouped = [(x, list(y)) for x, y in itertools.groupby(remainingCandidates, lambda k: k.ctvv)] # ily python
+		for i in range(0, len(grouped)):
+			key, group = grouped[i]
+			
+			# Would the total number of votes to exclude geq the next lowest candidate?
+			if len(grouped) > i + 1 and votesToExclude + totalVote(group) >= float(grouped[i + 1][0]):
+				break
+			
+			# Would the total number of votes to exclude allow a candidate to reach the quota?
+			lowestShortfall = float("inf")
+			for candidate in remainingCandidates:
+				if candidate not in provisionallyElected and (quota - candidate.ctvv < lowestShortfall):
+					lowestShortfall = quota - candidate.ctvv
+			if votesToExclude + totalVote(group) >= lowestShortfall:
+				break
+			
+			# Still here? Okay!
+			candidatesToExclude.extend(group)
+			votesToExclude += totalVote(group)
+		
+		if candidatesToExclude:
+			for candidate in candidatesToExclude:
+				print("---- Bulk excluding {}".format(candidate.name))
+				remainingCandidates.pop(remainingCandidates.index(candidate))
+		else:
+			# Just exclude one candidate then
+			# Check for a tie
+			toExclude = 0
+			if len(remainingCandidates) > 1 and remainingCandidates[0].shortCtvv() == remainingCandidates[1].shortCtvv():
+				print("---- There is a tie for last place:")
+				for i in range(0, len(remainingCandidates)):
+					if remainingCandidates[i].shortCtvv() == remainingCandidates[0].shortCtvv():
+						print("     {}. {}".format(i, remainingCandidates[i].name))
+				print("---- Which candidate to exclude?")
+				toExclude = int(input())
+			
+			print("---- Excluding {}".format(remainingCandidates[toExclude].name))
+			remainingCandidates.pop(toExclude)
 		
 		# Uncomment this to enable bulk election (does not allow for the computation of ranked winners)
 		#if len(remainingCandidates) == numSeats:
