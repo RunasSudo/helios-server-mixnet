@@ -101,11 +101,10 @@ def countVotes(ballots, candidates):
 	while True:
 		print()
 		print("== COUNT {}".format(count))
-		exhausted = 0
 		provisionallyElected = []
 		
 		resetCount(ballots, candidates)
-		exhausted += distributePreferences(ballots, remainingCandidates)
+		exhausted = distributePreferences(ballots, remainingCandidates)
 		
 		printVotes(remainingCandidates, provisionallyElected)
 		
@@ -113,16 +112,16 @@ def countVotes(ballots, candidates):
 		print("---- Exhausted: {}".format(exhausted))
 		print("---- Quota: {}".format(quota))
 		
+		remainingCandidates = sorted(remainingCandidates, key=lambda k: k.ctvv, reverse=True)
 		for candidate in remainingCandidates:
 			if candidates not in provisionallyElected and candidate.ctvv > quota:
 				print("**** {} provisionally elected".format(candidate.name))
 				provisionallyElected.append(candidate)
 		
 		if len(provisionallyElected) == numSeats:
-			return provisionallyElected
+			return provisionallyElected, exhausted
 		
 		mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
-		
 		# While surpluses remain
 		while mostVotesElected and mostVotesElected[0].ctvv > quota:
 			for candidate in mostVotesElected:
@@ -153,14 +152,12 @@ def countVotes(ballots, candidates):
 							provisionallyElected.append(candidate)
 					
 					if len(provisionallyElected) == numSeats:
-						return provisionallyElected
+						return provisionallyElected, exhausted
 			mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
-		remainingCandidates.sort(key=lambda k: k.ctvv)
-		
-		toExclude = 0
-		
 		# Check for a tie
+		remainingCandidates.sort(key=lambda k: k.ctvv)
+		toExclude = 0
 		if len(remainingCandidates) > 1 and remainingCandidates[0].shortCtvv() == remainingCandidates[1].shortCtvv():
 			print("---- There is a tie for last place:")
 			for i in range(0, len(remainingCandidates)):
@@ -172,12 +169,13 @@ def countVotes(ballots, candidates):
 		print("---- Excluding {}".format(remainingCandidates[toExclude].name))
 		remainingCandidates.pop(toExclude)
 		
-		if len(remainingCandidates) == numSeats:
-			for candidate in remainingCandidates:
-				if candidate not in provisionallyElected:
-					print("**** {} provisionally elected".format(candidate.name))
-					provisionallyElected.append(candidate)
-			return provisionallyElected
+		# Uncomment this to enable bulk election (does not allow for the computation of ranked winners)
+		#if len(remainingCandidates) == numSeats:
+		#	for candidate in remainingCandidates:
+		#		if candidate not in provisionallyElected:
+		#			print("**** {} provisionally elected".format(candidate.name))
+		#			provisionallyElected.append(candidate)
+		#	return provisionallyElected, exhausted
 		
 		count += 1
 
@@ -195,17 +193,15 @@ with open(electionIn, 'r') as electionFile:
 		for result in results[question]:
 			ballots.append(Ballot(result, candidates))
 
-provisionallyElected = countVotes(ballots, candidates)
+provisionallyElected, exhausted = countVotes(ballots, candidates)
 print()
 print("== TALLY COMPLETE")
-
-resetCount(ballots, provisionallyElected)
-exhausted = distributePreferences(ballots, provisionallyElected)
-provisionallyElected.sort(key=lambda k: k.ctvv, reverse=True)
-
 print()
 print("The winners are, in order of election:")
 
-printVotes(provisionallyElected, provisionallyElected)
+print()
+for candidate in provisionallyElected:
+	print("     {}".format(candidate.name))
+print()
 
 print("---- Exhausted: {}".format(exhausted))
