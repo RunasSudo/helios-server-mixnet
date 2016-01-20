@@ -127,12 +127,16 @@ def countVotes(ballots, candidates):
 			for candidate in mostVotesElected:
 				if candidate.ctvv > quota:
 					multiplier = (candidate.ctvv - quota) / candidate.ctvv
+					print("---- Transferring surplus from {} at value {}".format(candidate.name, multiplier))
 					
 					for key, group in itertools.groupby(sorted(candidate.ballots, key=lambda k: k.gamma), lambda k: k.gamma):
 						transferTo = surplusTransfer(Ballot.gammaToCandidates(key, candidates), candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
+							transferred = 0
 							for ballot in group:
-								exhausted += ballot.value
+								transferred += ballot.value
+							exhausted += transferred
+							print("---- Exhausted {} votes via {}".format(transferred, key))
 						else:
 							transferred = 0
 							for ballot in group:
@@ -140,7 +144,7 @@ def countVotes(ballots, candidates):
 								ballot.value *= multiplier
 								transferTo.ctvv += ballot.value
 								transferTo.ballots.append(ballot)
-							print("---- Transferred {} votes from {} to {} at value {} via {}".format(transferred, candidate.name, transferTo.name, multiplier, key))
+							print("---- Transferred {} votes to {} via {}".format(transferred, transferTo.name, key))
 					
 					candidate.ctvv = quota
 					
