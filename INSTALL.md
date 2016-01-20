@@ -1,11 +1,15 @@
 # Installation
-* Install PostgreSQL 8.3+.
+* Install Python 2 and PostgreSQL 8.3+.
 * Make sure you have virtualenv installed: http://www.virtualenv.org/en/latest/
 * Download helios-server.
 * cd into the helios-server directory.
 * Create a virtualenv:
 ```
 virtualenv venv
+```
+** If your system uses Python 3 by default (e.g. Arch Linux), you may need to instead run:
+```
+virtualenv -p `which python2` venv
 ```
 * Activate the virtual environment:
 ```
