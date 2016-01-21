@@ -112,6 +112,7 @@ def surplusTransfer(preferences, fromCandidate, provisionallyElected, remainingC
 	return False
 
 def printVotes(remainingCandidates, provisionallyElected):
+	remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 	print()
 	for candidate in remainingCandidates:
 		print("    {}{}: {:.2f}".format("*" if candidate in provisionallyElected else " ", candidate.name, float(candidate.ctvv)))
@@ -182,30 +183,46 @@ def countVotes(ballots, candidates, numSeats):
 						return provisionallyElected, exhausted
 			mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
-		# Bulk exclude as many candidates as possible
-		candidatesToExclude = []
-		votesToExclude = Fraction('0')
+		# We only want to do this after preferences have been distributed
+		if len(remainingCandidates) == numSeats:
+			remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
+			for candidate in remainingCandidates:
+				if candidate not in provisionallyElected:
+					print("**** {} provisionally elected on {:.2f} quotas".format(candidate.name, float(candidate.ctvv / quota)))
+					provisionallyElected.append(candidate)
+			return provisionallyElected, exhausted
 		
+		# Bulk exclude as many candidates as possible
 		remainingCandidates.sort(key=lambda k: k.ctvv)
-		grouped = [(x, list(y)) for x, y in itertools.groupby(remainingCandidates, lambda k: k.ctvv)] # ily python
+		grouped = [(x, list(y)) for x, y in itertools.groupby([x for x in remainingCandidates if x not in provisionallyElected], lambda k: k.ctvv)] # ily python
+		
+		votesToExclude = Fraction('0')
 		for i in range(0, len(grouped)):
+			key, group = grouped[i]
+			votesToExclude += totalVote(group)
+		
+		candidatesToExclude = []
+		for i in reversed(range(0, len(grouped))):
 			key, group = grouped[i]
 			
 			# Would the total number of votes to exclude geq the next lowest candidate?
-			if len(grouped) > i + 1 and votesToExclude + totalVote(group) >= float(grouped[i + 1][0]):
-				break
+			if len(grouped) > i + 1 and votesToExclude >= float(grouped[i + 1][0]):
+				votesToExclude -= totalVote(group)
+				continue
 			
 			# Would the total number of votes to exclude allow a candidate to reach the quota?
 			lowestShortfall = float("inf")
 			for candidate in remainingCandidates:
 				if candidate not in provisionallyElected and (quota - candidate.ctvv < lowestShortfall):
 					lowestShortfall = quota - candidate.ctvv
-			if votesToExclude + totalVote(group) >= lowestShortfall:
-				break
+			if votesToExclude >= lowestShortfall:
+				votesToExclude -= totalVote(group)
+				continue
 			
 			# Still here? Okay!
-			candidatesToExclude.extend(group)
-			votesToExclude += totalVote(group)
+			for j in range(0, i + 1):
+				key, group = grouped[j]
+				candidatesToExclude.extend(group)
 		
 		if candidatesToExclude:
 			for candidate in candidatesToExclude:
@@ -225,14 +242,6 @@ def countVotes(ballots, candidates, numSeats):
 			
 			print("---- Excluding {}".format(remainingCandidates[toExclude].name))
 			remainingCandidates.pop(toExclude)
-		
-		# Uncomment this to enable bulk election (does not allow for the computation of ranked winners)
-		#if len(remainingCandidates) == numSeats:
-		#	for candidate in remainingCandidates:
-		#		if candidate not in provisionallyElected:
-		#			print("**** {} provisionally elected".format(candidate.name))
-		#			provisionallyElected.append(candidate)
-		#	return provisionallyElected, exhausted
 		
 		count += 1
 
