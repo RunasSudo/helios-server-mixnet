@@ -17,20 +17,25 @@
 # I love the smell of Python 3 in the morning
 
 import utils
-import itertools, json, sys
+import argparse, itertools, json, sys
 from fractions import Fraction
 
-electionIn = sys.argv[1]
-resultIn = sys.argv[2]
-question = int(sys.argv[3])
-numSeats = int(sys.argv[4])
+parser = argparse.ArgumentParser(description='Count an election using Wright STV.')
+
+parser.add_argument('election', help='Helios-style election.json specifying candidates')
+parser.add_argument('result', help='Helios-style gamma encoded result.json specifying ballots')
+parser.add_argument('seats', type=int, help='The number of candidates to elect')
+parser.add_argument('question', type=int, help='The question number to tally', nargs='?', default=0)
+parser.add_argument('--verbose', help='Display extra information', action='store_true')
+parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >H-B', choices=['geq-droop', 'gt-hb'], default='geq-droop')
+args = parser.parse_args()
 
 class Ballot:
 	def __init__(self, gamma, candidates):
 		self.gamma = gamma
 		self.preferences = Ballot.gammaToCandidates(gamma, candidates)
 		self.value = Fraction('1')
-		print([x.name for x in self.preferences])
+		verboseLog([x.name for x in self.preferences])
 	
 	def gammaToCandidates(gamma, candidates):
 		return [candidates[x] for x in utils.to_absolute_answers(utils.gamma_decode(gamma, len(candidates)), len(candidates))]
@@ -40,6 +45,11 @@ class Candidate:
 		self.name = name
 		self.ctvv = Fraction('0')
 		self.ballots = []
+
+def verboseLog(string):
+	global args
+	if args.verbose:
+		print(string)
 
 def resetCount(ballots, candidates):
 	for ballot in ballots:
@@ -62,13 +72,13 @@ def distributePreferences(ballots, remainingCandidates):
 					preference.ctvv += ballot.value
 					preference.ballots.append(ballot)
 				
-				print("---- Assigned {:.2f} votes to {} via {}".format(float(assigned), preference.name, key))
+				verboseLog("---- Assigned {:.2f} votes to {} via {}".format(float(assigned), preference.name, key))
 				break
 		if isExhausted:
 			for ballot in group:
 				exhausted += ballot.value
 				ballot.value = Fraction('0')
-			print("---- Exhausted {:.2f} votes via {}".format(float(exhausted), key))
+			verboseLog("---- Exhausted {:.2f} votes via {}".format(float(exhausted), key))
 	
 	return exhausted
 
@@ -77,6 +87,20 @@ def totalVote(candidates):
 	for candidate in candidates:
 		tv += candidate.ctvv
 	return tv
+
+def calcQuota(candidates, numSeats):
+	global args
+	if '-hb' in args.quota:
+		return totalVote(candidates) / (numSeats + 1)
+	if '-droop' in args.quota:
+		return (totalVote(candidates) / (numSeats + 1) + 1).__floor__()
+
+def hasQuota(candidate, quota):
+	global args
+	if 'gt-' in args.quota:
+		return candidate.ctvv > quota
+	if 'geq-' in args.quota:
+		return candidate.ctvv >= quota
 
 # Return the candidate to transfer votes to
 def surplusTransfer(preferences, fromCandidate, provisionallyElected, remainingCandidates):
@@ -93,7 +117,7 @@ def printVotes(remainingCandidates, provisionallyElected):
 		print("    {}{}: {:.2f}".format("*" if candidate in provisionallyElected else " ", candidate.name, float(candidate.ctvv)))
 	print()
 
-def countVotes(ballots, candidates):
+def countVotes(ballots, candidates, numSeats):
 	count = 1
 	remainingCandidates = candidates[:]
 	while True:
@@ -106,15 +130,14 @@ def countVotes(ballots, candidates):
 		
 		printVotes(remainingCandidates, provisionallyElected)
 		
-		quota = totalVote(candidates) / (numSeats + 1)
-		#quota = (totalVote(candidates) / (numSeats + 1) + 1).__floor__()
+		quota = calcQuota(candidates, numSeats)
+		
 		print("---- Exhausted: {:.2f}".format(float(exhausted)))
 		print("---- Quota: {:.2f}".format(float(quota)))
 		
 		remainingCandidates = sorted(remainingCandidates, key=lambda k: k.ctvv, reverse=True)
 		for candidate in remainingCandidates:
-			if candidates not in provisionallyElected and candidate.ctvv > quota:
-			#if candidates not in provisionallyElected and candidate.ctvv >= quota:
+			if candidates not in provisionallyElected and hasQuota(candidate, quota):
 				print("**** {} provisionally elected".format(candidate.name))
 				provisionallyElected.append(candidate)
 		
@@ -136,7 +159,7 @@ def countVotes(ballots, candidates):
 							for ballot in group:
 								transferred += ballot.value
 							exhausted += transferred
-							print("---- Exhausted {:.2f} votes via {}".format(float(transferred), key))
+							verboseLog("---- Exhausted {:.2f} votes via {}".format(float(transferred), key))
 						else:
 							transferred = Fraction('0')
 							for ballot in group:
@@ -144,7 +167,7 @@ def countVotes(ballots, candidates):
 								ballot.value *= multiplier
 								transferTo.ctvv += ballot.value
 								transferTo.ballots.append(ballot)
-							print("---- Transferred {:.2f} votes to {} via {}".format(float(transferred), transferTo.name, key))
+							verboseLog("---- Transferred {:.2f} votes to {} via {}".format(float(transferred), transferTo.name, key))
 					
 					candidate.ctvv = quota
 					
@@ -213,21 +236,21 @@ def countVotes(ballots, candidates):
 		
 		count += 1
 
-with open(electionIn, 'r') as electionFile:
+with open(args.election, 'r') as electionFile:
 	election = json.load(electionFile)
 	
 	candidates = []
-	for candidate in election["questions"][question]["answers"]:
+	for candidate in election["questions"][args.question]["answers"]:
 		candidates.append(Candidate(candidate.split("/")[0])) # Just want the name
 	
-	with open(resultIn, 'r') as resultFile:
+	with open(args.result, 'r') as resultFile:
 		results = json.load(resultFile)
 		
 		ballots = []
-		for result in results[question]:
+		for result in results[args.question]:
 			ballots.append(Ballot(result, candidates))
 
-provisionallyElected, exhausted = countVotes(ballots, candidates)
+provisionallyElected, exhausted = countVotes(ballots, candidates, args.seats)
 print()
 print("== TALLY COMPLETE")
 print()
