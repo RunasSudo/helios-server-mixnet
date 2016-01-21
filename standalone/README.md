@@ -10,10 +10,12 @@ Requires a Python 2 virtual environment.
     ./verify.py https://helios.example.com/helios/elections/12345678-90ab-cdef-1234-567890abcdef
 Downloads the data for a Helios mixnet election and verifies the shuffles and decryption.
 
-## count/to_gamma.py
+## count/*_to_gamma.py
 Requires **Python 3**.
-    ./to_gamma.py candidates.csv ballots.csv
+    ./csv_to_gamma.py candidates.csv ballots.csv
 Takes as input a list of candidates (one per line) and a list of CSV ballots (one ballot per line, candidate names separated by commas), and outputs a result array able to be piped into the count scripts.
+    ./blt_to_gamma.py ballots.blt
+Takes as input an [OpenSTV blt file](https://stackoverflow.com/questions/2233695/how-do-i-generate-blt-files-for-openstv-elections-using-c), and outputs a result array able to be piped into the count scripts.
 
 ## count/wright_stv.py
 Requires **Python 3**.
