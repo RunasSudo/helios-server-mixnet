@@ -31,10 +31,10 @@ parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >
 args = parser.parse_args()
 
 class Ballot:
-	def __init__(self, gamma, candidates):
+	def __init__(self, gamma, candidates, value=1):
 		self.gamma = gamma
 		self.preferences = Ballot.gammaToCandidates(gamma, candidates)
-		self.value = Fraction('1')
+		self.value = self.origValue = Fraction(value)
 		verboseLog([x.name for x in self.preferences])
 	
 	def gammaToCandidates(gamma, candidates):
@@ -53,7 +53,7 @@ def verboseLog(string):
 
 def resetCount(ballots, candidates):
 	for ballot in ballots:
-		ballot.value = Fraction('1')
+		ballot.value = ballot.origValue
 	for candidate in candidates:
 		candidate.ctvv = Fraction('0')
 		candidate.ballots.clear()
@@ -61,24 +61,21 @@ def resetCount(ballots, candidates):
 def distributePreferences(ballots, remainingCandidates):
 	exhausted = Fraction('0')
 	
-	for key, group in itertools.groupby(sorted(ballots, key=lambda k: k.gamma), lambda k: k.gamma):
+	for ballot in ballots:
 		isExhausted = True
-		for preference in Ballot.gammaToCandidates(key, candidates):
+		for preference in ballot.preferences:
 			if preference in remainingCandidates:
-				assigned = Fraction('0')
-				isExhausted = False
-				for ballot in group:
-					assigned += ballot.value
-					preference.ctvv += ballot.value
-					preference.ballots.append(ballot)
+				verboseLog("---- Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.gamma))
 				
-				verboseLog("---- Assigned {:.2f} votes to {} via {}".format(float(assigned), preference.name, key))
+				isExhausted = False
+				preference.ctvv += ballot.value
+				preference.ballots.append(ballot)
+				
 				break
 		if isExhausted:
-			for ballot in group:
-				exhausted += ballot.value
-				ballot.value = Fraction('0')
-			verboseLog("---- Exhausted {:.2f} votes via {}".format(float(exhausted), key))
+			verboseLog("---- Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.gamma))
+			exhausted += ballot.value
+			ballot.value = Fraction('0')
 	
 	return exhausted
 
@@ -119,6 +116,8 @@ def printVotes(remainingCandidates, provisionallyElected):
 	print()
 
 def countVotes(ballots, candidates, numSeats):
+	global args
+	
 	count = 1
 	remainingCandidates = candidates[:]
 	while True:
@@ -153,22 +152,19 @@ def countVotes(ballots, candidates, numSeats):
 					multiplier = (candidate.ctvv - quota) / candidate.ctvv
 					print("---- Transferring surplus from {} at value {:.2f}".format(candidate.name, float(multiplier)))
 					
-					for key, group in itertools.groupby(sorted(candidate.ballots, key=lambda k: k.gamma), lambda k: k.gamma):
-						transferTo = surplusTransfer(Ballot.gammaToCandidates(key, candidates), candidate, provisionallyElected, remainingCandidates)
+					if args.verbose:
+						candidate.ballots.sort(key=lambda k: k.gamma)
+					
+					for ballot in candidate.ballots:
+						transferTo = surplusTransfer(ballot.preferences, candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
-							transferred = Fraction('0')
-							for ballot in group:
-								transferred += ballot.value
-							exhausted += transferred
-							verboseLog("---- Exhausted {:.2f} votes via {}".format(float(transferred), key))
+							verboseLog("---- Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.gamma))
+							exhausted += ballot.value
 						else:
-							transferred = Fraction('0')
-							for ballot in group:
-								transferred += ballot.value
-								ballot.value *= multiplier
-								transferTo.ctvv += ballot.value
-								transferTo.ballots.append(ballot)
-							verboseLog("---- Transferred {:.2f} votes to {} via {}".format(float(transferred), transferTo.name, key))
+							verboseLog("---- Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.gamma))
+							ballot.value *= multiplier
+							transferTo.ctvv += ballot.value
+							transferTo.ballots.append(ballot)
 					
 					candidate.ctvv = quota
 					
@@ -256,8 +252,12 @@ with open(args.election, 'r') as electionFile:
 		results = json.load(resultFile)
 		
 		ballots = []
-		for result in results[args.question]:
-			ballots.append(Ballot(result, candidates))
+		# Preprocess groups
+		for result, group in itertools.groupby(sorted(results[args.question])):
+			ballots.append(Ballot(result, candidates, len(list(group))))
+
+if args.verbose:
+	ballots.sort(key=lambda k: k.gamma)
 
 provisionallyElected, exhausted = countVotes(ballots, candidates, args.seats)
 print()
