@@ -1583,7 +1583,7 @@ def mixnet_shuffle_and_prove(request, election, mixnet_index):
   
   return render_template(request, 'mixnet_shuffle_and_prove', {'election': election, 'mixnet_index': mixnet_index, 'mixnet': mixnet, 'orig': orig})
 
-@transaction.commit_on_success
+@transaction.atomic
 @mixnet_check
 def mixnet_upload_shuffle(request, election, mixnet_index):
   if 'shuffle_file' not in request.FILES or 'proof_file' not in request.FILES:

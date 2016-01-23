@@ -131,7 +131,7 @@ class ElectionMixnet(HeliosModel):
       votes = mixnet.mixed_answers.get(question=question).mixed_answers.answers
     return votes
 
-  @transaction.commit_on_success
+  @transaction.atomic
   def _do_mix_one_question(self, mix_cls, q):
     mixnet = mix_cls(self.election)
     
