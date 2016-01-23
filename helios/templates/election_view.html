@@ -94,7 +94,7 @@ this {{election.election_type}} is <u>not</u> featured on the front page.
 {{issue.action}}{% if forloop.last %}{% else %}, and{% endif %}<br />
 {% endfor %}
 {% else %}
-<a href="{% url "helios.views.one_election_freeze" election.uuid %}">freeze ballot and open election.</a>
+<a href="{% url "helios.views.one_election_freeze" election.uuid %}">freeze ballot and open election</a>
 <br />
 {% if election.voting_starts_at %}
 once you do this, the election will be ready for voting and will open automatically<br />
