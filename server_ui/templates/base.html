@@ -82,21 +82,22 @@
   <div class="push"></div>
   </div>
 
-  <div class="footer" id="footer">
+  <div class="footer" id="footer" style="position: relative;">
 <!--    <span style="float:right;">
       {% if settings.FOOTER_LOGO_URL %}
       <img src="{{settings.FOOTER_LOGO_URL}}" />
       {% endif %}
     </span>-->
     {% if user %}
-    logged in as <b>{{user.display_html_small|safe}}</b>&nbsp;&nbsp;
-    <a class="tiny button" href="{% url "helios_auth.views.logout" %}?return_url={{CURRENT_URL}}">logout</a><br />
+    <span style="position: relative; top: 0.3em;">logged in as <b>{{user.display_html_small|safe}}</b></span>&nbsp;&nbsp;
+    <a class="tiny button" style="margin: 0; float: left; position: absolute;" href="{% url "helios_auth.views.logout" %}?return_url={{CURRENT_URL}}">logout</a><br />
     {% else %}
     {% if voter %}
     You are signed in as voter <u>{% if voter.alias %}{{voter.alias}}{% else %}{{voter.name}}{% endif %}</u> in election <u>{{voter.election.name}}</u>. [<a href="{{settings.SECURE_URL_HOST}}{% url "helios_auth.views.logout" %}?return_url={{CURRENT_URL}}">sign out</a>]
     {% else %}
 {% if settings.SHOW_LOGIN_OPTIONS %}
-    not logged in. <a class="tiny button" href="{{settings.SECURE_URL_HOST}}{% url "helios_auth.views.index" %}?return_url={{CURRENT_URL}}">log in</a>
+    <span style="position: relative; top: 0.3em;">not logged in.</span>&nbsp;&nbsp;
+    <a class="tiny button" style="margin: 0; float: left; position: absolute;" href="{{settings.SECURE_URL_HOST}}{% url "helios_auth.views.index" %}?return_url={{CURRENT_URL}}">log in</a>
 {% else %}
 powered by <a href="http://heliosvoting.org">Helios Voting</a>.
 {% endif %}
