@@ -144,7 +144,7 @@ class Tally(HomomorphicTally):
         # q_decode
         if raw_value > public_key.q:
             raw_value = -raw_value % public_key.p
-        raw_value = raw_value - 1
+        # raw_value = raw_value - 1 # what. why?
         q_result.append(raw_value)
 
       result.append(q_result)

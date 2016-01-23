@@ -190,12 +190,14 @@ def gamma_encode(choices, nr_candidates=None, max_choices=None):
             break
         i += 1
 
+    sumus += 1
     return sumus
 
 def gamma_decode(sumus, nr_candidates=None, max_choices=None):
     nr_candidates, max_choices = \
         get_choice_params(nr_candidates, nr_candidates, max_choices)
 
+    sumus -= 1
     if sumus <= 0:
         return []
 
