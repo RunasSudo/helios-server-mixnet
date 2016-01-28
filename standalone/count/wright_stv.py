@@ -27,6 +27,7 @@ parser.add_argument('result', help='Helios-style gamma encoded result.json speci
 parser.add_argument('seats', type=int, help='The number of candidates to elect')
 parser.add_argument('question', type=int, help='The question number to tally', nargs='?', default=0)
 parser.add_argument('--verbose', help='Display extra information', action='store_true')
+parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
 parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >H-B', choices=['geq-droop', 'gt-hb'], default='geq-droop')
 args = parser.parse_args()
 
@@ -115,7 +116,7 @@ def printVotes(remainingCandidates, provisionallyElected):
 		print("    {}{}: {:.2f}".format("*" if candidate in provisionallyElected else " ", candidate.name, float(candidate.ctvv)))
 	print()
 
-def countVotes(ballots, candidates, numSeats):
+def countVotes(ballots, candidates, numSeats, fast):
 	global args
 	
 	count = 1
@@ -132,6 +133,7 @@ def countVotes(ballots, candidates, numSeats):
 		
 		quota = calcQuota(candidates, numSeats)
 		
+		print("---- Total Votes: {:.2f}".format(float(totalVote(candidates))))
 		print("---- Exhausted: {:.2f}".format(float(exhausted)))
 		print("---- Quota: {:.2f}".format(float(quota)))
 		
@@ -141,7 +143,7 @@ def countVotes(ballots, candidates, numSeats):
 				print("**** {} provisionally elected".format(candidate.name))
 				provisionallyElected.append(candidate)
 		
-		if len(provisionallyElected) == numSeats:
+		if fast and len(provisionallyElected) == numSeats:
 			return provisionallyElected, exhausted
 		
 		mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
@@ -159,7 +161,8 @@ def countVotes(ballots, candidates, numSeats):
 						transferTo = surplusTransfer(ballot.preferences, candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
 							verboseLog("---- Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.gamma))
-							exhausted += ballot.value
+							# exhausted += ballot.value * multiplier
+							# Since it retains its value and remains in the count, we will not count it as exhausted.
 						else:
 							verboseLog("---- Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.gamma))
 							ballot.value *= multiplier
@@ -175,12 +178,12 @@ def countVotes(ballots, candidates, numSeats):
 							print("**** {} provisionally elected".format(candidate.name))
 							provisionallyElected.append(candidate)
 					
-					if len(provisionallyElected) == numSeats:
+					if fast and len(provisionallyElected) == numSeats:
 						return provisionallyElected, exhausted
 			mostVotesElected = sorted(provisionallyElected, key=lambda k: k.ctvv, reverse=True)
 		
 		# We only want to do this after preferences have been distributed
-		if len(remainingCandidates) == numSeats:
+		if not fast and len(remainingCandidates) == numSeats:
 			remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 			for candidate in remainingCandidates:
 				if candidate not in provisionallyElected:
@@ -239,6 +242,14 @@ def countVotes(ballots, candidates, numSeats):
 			print("---- Excluding {}".format(remainingCandidates[toExclude].name))
 			remainingCandidates.pop(toExclude)
 		
+		if fast and len(remainingCandidates) == numSeats:
+			remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
+			for candidate in remainingCandidates:
+				if candidate not in provisionallyElected:
+					print("**** {} provisionally elected on {:.2f} quotas".format(candidate.name, float(candidate.ctvv / quota)))
+					provisionallyElected.append(candidate)
+			return provisionallyElected, exhausted
+		
 		count += 1
 
 with open(args.election, 'r') as electionFile:
@@ -259,7 +270,7 @@ with open(args.election, 'r') as electionFile:
 if args.verbose:
 	ballots.sort(key=lambda k: k.gamma)
 
-provisionallyElected, exhausted = countVotes(ballots, candidates, args.seats)
+provisionallyElected, exhausted = countVotes(ballots, candidates, args.seats, args.fast)
 print()
 print("== TALLY COMPLETE")
 print()
