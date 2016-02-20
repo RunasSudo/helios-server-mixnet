@@ -40,7 +40,7 @@ function _onAdd(evt) {
 
 function _onRemove(evt) {
 	if (evt.from.classList.contains("gvt-preferences")) {
-		if (evt.from.children.length == 0) {
+		if (evt.from.children.length === 0) {
 			// No more preferences in GVT
 			evt.from.parentNode.parentNode.removeChild(evt.from.parentNode);
 		}
@@ -59,8 +59,7 @@ function updateAnswerBox(evt) {
 }
 
 function initAnswers(questionnum) {
-	var gvts = [];
-	var candidates = []; // without GVTs
+	var answers = [];
 	
 	for (var i = 0; i < BOOTH.election.questions[questionnum]["answers"].length; i++) {
 		// Record each candidate
@@ -68,70 +67,70 @@ function initAnswers(questionnum) {
 			var bits = BOOTH.election.questions[questionnum]["answers"][i].split("/");
 			
 			var candidate = {};
+			candidate.type = "candidate";
 			candidate.name = bits[0];
 			candidate.index = i;
 			
 			if (bits.length >= 3) {
-				var gvt = gvts.find(function(e, i, a) {
-					return e.name == bits[1];
+				var gvt = answers.find(function(e, i, a) {
+					return e.type === "gvt" && e.name === bits[1];
 				});
 				if (!gvt) {
 					gvt = {};
+					gvt.type = "gvt";
 					gvt.name = bits[1];
 					gvt.candidates = [];
-					
-					gvts.push(gvt);
+					answers.push(gvt);
 				}
 				
 				candidate.gvtorder = parseFloat(bits[2]);
 				
 				gvt.candidates.push(candidate);
 			} else {
-				candidates.push(candidate);
+				answers.push(candidate);
 			}
 		})(i);
 	}
 	
 	// Randomise answers if requested
 	if (BOOTH.election_metadata && BOOTH.election_metadata.randomize_answer_order) {
-		shuffleArray(gvts);
-		shuffleArray(candidates);
+		shuffleArray(answers);
 	}
 	
-	for (var gvt of gvts) {
-		var gvtLi = document.createElement("li");
-		gvtLi.className = "gvt";
-		
-		var gvtName = document.createElement("div");
-		gvtName.textContent = gvt.name;
-		gvtName.className = "gvt-name";
-		gvtLi.appendChild(gvtName);
-		
-		var gvtUl = document.createElement("ul");
-		gvtUl.className = "gvt-preferences";
-		gvtLi.appendChild(gvtUl);
-		
-		gvt.candidates.sort(function(a, b) {
-			return b.gvtoder - a.gvtorder;
-		});
-		
-		for (var candidate of gvt.candidates) {
+	for (var answer of answers) {
+		if (answer.type === "gvt") {
+			var gvtLi = document.createElement("li");
+			gvtLi.className = "gvt";
+			
+			var gvtName = document.createElement("div");
+			gvtName.textContent = answer.name;
+			gvtName.className = "gvt-name";
+			gvtLi.appendChild(gvtName);
+			
+			var gvtUl = document.createElement("ul");
+			gvtUl.className = "gvt-preferences";
+			gvtLi.appendChild(gvtUl);
+			
+			answer.candidates.sort(function(a, b) {
+				return b.gvtoder - a.gvtorder;
+			});
+			
+			for (var candidate of answer.candidates) {
+				var answerLi = document.createElement("li");
+				answerLi.textContent = candidate.index + " - " + candidate.name;
+				answerLi.className = "preference";
+				answerLi.dataset.index = candidate.index;
+				gvtUl.appendChild(answerLi);
+			}
+			
+			document.getElementById("stv_choices_available").appendChild(gvtLi);
+		} else {
 			var answerLi = document.createElement("li");
-			answerLi.textContent = candidate.index + " - " + candidate.name;
+			answerLi.textContent = answer.index + " - " + answer.name;
 			answerLi.className = "preference";
-			answerLi.dataset.index = candidate.index;
-			gvtUl.appendChild(answerLi);
+			answerLi.dataset.index = answer.index;
+			document.getElementById("stv_choices_available").appendChild(answerLi);
 		}
-		
-		document.getElementById("stv_choices_available").appendChild(gvtLi);
-	}
-	
-	for (var candidate of candidates) {
-		var answerLi = document.createElement("li");
-		answerLi.textContent = candidate.index + " - " + candidate.name;
-		answerLi.className = "preference";
-		answerLi.dataset.index = candidate.index;
-		document.getElementById("stv_choices_available").appendChild(answerLi);
 	}
 	
 	// Setup Sortable
