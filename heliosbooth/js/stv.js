@@ -92,7 +92,11 @@ function initAnswers(questionnum) {
 		})(i);
 	}
 	
-	// TODO: Randomise answers if requested
+	// Randomise answers if requested
+	if (BOOTH.election_metadata && BOOTH.election_metadata.randomize_answer_order) {
+		shuffleArray(gvts);
+		shuffleArray(candidates);
+	}
 	
 	for (var gvt of gvts) {
 		var gvtLi = document.createElement("li");
