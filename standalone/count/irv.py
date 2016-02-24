@@ -27,12 +27,17 @@ parser.add_argument('result', help='Helios-style gamma encoded result.json speci
 parser.add_argument('question', type=int, help='The question number to tally', nargs='?', default=0)
 parser.add_argument('--verbose', help='Display extra information', action='store_true')
 parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
+parser.add_argument('--gamma', help="Display gamma values instead of lists of candidates", action='store_true')
 args = parser.parse_args()
 
 class Ballot:
 	def __init__(self, gamma, candidates, value=1):
+		global args
+		
 		self.gamma = gamma
 		self.preferences = Ballot.gammaToCandidates(gamma, candidates)
+		self.prettyPreferences = self.gamma if args.gamma else str([candidate.name for candidate in self.preferences])
+		
 		self.value = self.origValue = Fraction(value)
 		verboseLog([x.name for x in self.preferences])
 	
@@ -64,7 +69,7 @@ def distributePreferences(ballots, remainingCandidates):
 		isExhausted = True
 		for preference in ballot.preferences:
 			if preference in remainingCandidates:
-				verboseLog("---- Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.gamma))
+				verboseLog("   - Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.prettyPreferences))
 				
 				isExhausted = False
 				preference.ctvv += ballot.value
@@ -72,7 +77,7 @@ def distributePreferences(ballots, remainingCandidates):
 				
 				break
 		if isExhausted:
-			verboseLog("---- Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.gamma))
+			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
 			exhausted += ballot.value
 			ballot.value = Fraction('0')
 	
@@ -114,6 +119,7 @@ def exclude(candidate, remainingCandidates):
 			transferTo.ballots.append(ballot)
 	
 	return exhausted
+
 def printVotes(remainingCandidates, quota):
 	remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 	print()
@@ -141,6 +147,7 @@ def countVotes(ballots, candidates, fast):
 		print("---- Total Votes: {:.2f}".format(float(totalVote(remainingCandidates))))
 		print("---- Exhausted: {:.2f}".format(float(exhausted)))
 		print("---- Majority: {:.2f}".format(float(quota)))
+		print()
 		
 		remainingCandidates = sorted(remainingCandidates, key=lambda k: k.ctvv, reverse=True)
 		
