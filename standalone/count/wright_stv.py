@@ -133,7 +133,7 @@ def countVotes(ballots, candidates, numSeats, fast):
 		
 		quota = calcQuota(candidates, numSeats)
 		
-		print("---- Total Votes: {:.2f}".format(float(totalVote(candidates))))
+		print("---- Total Votes: {:.2f}".format(float(totalVote(remainingCandidates))))
 		print("---- Exhausted: {:.2f}".format(float(exhausted)))
 		print("---- Quota: {:.2f}".format(float(quota)))
 		
