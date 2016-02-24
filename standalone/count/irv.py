@@ -99,6 +99,21 @@ def excludedTransfer(preferences, fromCandidate, remainingCandidates):
 			return preference
 	return False
 
+def exclude(candidate, remainingCandidates):
+	remainingCandidates.remove(candidate)
+	
+	exhausted = 0
+	for ballot in candidate.ballots:
+		transferTo = excludedTransfer(ballot.preferences, candidate, remainingCandidates)
+		if transferTo == False:
+			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
+			exhausted += ballot.value
+		else:
+			verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences))
+			transferTo.ctvv += ballot.value
+			transferTo.ballots.append(ballot)
+	
+	return exhausted
 def printVotes(remainingCandidates, quota):
 	remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 	print()
@@ -170,17 +185,7 @@ def countVotes(ballots, candidates, fast):
 		if candidatesToExclude:
 			for candidate in candidatesToExclude:
 				print("---- Bulk excluding {}".format(candidate.name))
-				remainingCandidates.pop(remainingCandidates.index(candidate))
-				
-				for ballot in candidate.ballots:
-					transferTo = excludedTransfer(ballot.preferences, candidate, remainingCandidates)
-					if transferTo == False:
-						verboseLog("---- Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.gamma))
-						exhausted += ballot.value
-					else:
-						verboseLog("---- Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.gamma))
-						transferTo.ctvv += ballot.value
-						transferTo.ballots.append(ballot)
+				exhausted += exclude(candidate, remainingCandidates)
 		else:
 			# Just exclude one candidate then
 			# Check for a tie
@@ -194,17 +199,7 @@ def countVotes(ballots, candidates, fast):
 				toExclude = int(input())
 			
 			print("---- Excluding {}".format(remainingCandidates[toExclude].name))
-			remainingCandidates.pop(toExclude)
-			
-			for ballot in candidate.ballots:
-				transferTo = excludedTransfer(ballot.preferences, candidate, remainingCandidates)
-				if transferTo == False:
-					verboseLog("---- Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.gamma))
-					exhausted += ballot.value
-				else:
-					verboseLog("---- Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.gamma))
-					transferTo.ctvv += ballot.value
-					transferTo.ballots.append(ballot)
+			exhausted += exclude(remainingCandidates[toExclude], remainingCandidates)
 		
 		if fast and hasQuota(remainingCandidates[0], quota):
 			return remainingCandidates[0], exhausted
