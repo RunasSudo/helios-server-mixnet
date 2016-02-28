@@ -41,7 +41,7 @@ class Ballot:
 		self.prettyPreferences = self.gamma if args.gamma else str([candidate.name for candidate in self.preferences])
 		
 		self.value = self.origValue = Fraction(value)
-		verboseLog([x.name for x in self.preferences])
+		verboseLog("{:.2f}: {}".format(value, [x.name for x in self.preferences]))
 	
 	def gammaToCandidates(gamma, candidates):
 		return [candidates[x] for x in utils.to_absolute_answers(utils.gamma_decode(gamma, len(candidates)), len(candidates))]
