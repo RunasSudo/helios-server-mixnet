@@ -451,7 +451,10 @@ BALLOT.pretty_choices = function(election, ballot) {
         }
 
 	    return _(q_answers).map(function(ans) {
-	      return questions[q_num].answers[ans];
+	      var bits = questions[q_num].answers[ans].split("/");
+	      if (bits.length >= 3)
+	        return bits[0] + " (" + bits[1] + ")";
+	      return bits[0];
 	    });
     });
 

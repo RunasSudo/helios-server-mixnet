@@ -35,7 +35,13 @@ function _onAdd(evt) {
 		// Break up the GVT
 		var preferences = evt.to.querySelectorAll(".preference");
 		for (var i = 0; i < preferences.length; i++) {
-			evt.to.parentNode.parentNode.insertBefore(preferences[i], evt.to.parentNode);
+			var preference = preferences[i];
+			
+			// Add the GVT name to the candidate's name
+			if (preference.answer.gvt)
+				preference.textContent = preference.answer.index + " - " + preference.answer.name + " (" + preference.answer.gvt.name + ")";
+			
+			evt.to.parentNode.parentNode.insertBefore(preference, evt.to.parentNode);
 		}
 		evt.to.parentNode.parentNode.removeChild(evt.to.parentNode);
 	}
@@ -66,33 +72,32 @@ function initAnswers(questionnum) {
 	
 	for (var i = 0; i < BOOTH.election.questions[questionnum]["answers"].length; i++) {
 		// Record each candidate
-		(function(i) {
-			var bits = BOOTH.election.questions[questionnum]["answers"][i].split("/");
-			
-			var candidate = {};
-			candidate.type = "candidate";
-			candidate.name = bits[0];
-			candidate.index = i;
-			
-			if (bits.length >= 3) {
-				var gvt = answers.find(function(e, i, a) {
-					return e.type === "gvt" && e.name === bits[1];
-				});
-				if (!gvt) {
-					gvt = {};
-					gvt.type = "gvt";
-					gvt.name = bits[1];
-					gvt.candidates = [];
-					answers.push(gvt);
-				}
-				
-				candidate.gvtorder = parseFloat(bits[2]);
-				
-				gvt.candidates.push(candidate);
-			} else {
-				answers.push(candidate);
+		var bits = BOOTH.election.questions[questionnum]["answers"][i].split("/");
+		
+		var candidate = {};
+		candidate.type = "candidate";
+		candidate.name = bits[0];
+		candidate.index = i;
+		
+		if (bits.length >= 3) {
+			var gvt = answers.find(function(e, index, a) {
+				return e.type === "gvt" && e.name === bits[1];
+			});
+			if (!gvt) {
+				gvt = {};
+				gvt.type = "gvt";
+				gvt.name = bits[1];
+				gvt.candidates = [];
+				answers.push(gvt);
 			}
-		})(i);
+			
+			candidate.gvtorder = parseFloat(bits[2]);
+			candidate.gvt = gvt;
+			
+			gvt.candidates.push(candidate);
+		} else {
+			answers.push(candidate);
+		}
 	}
 	
 	// Randomise answers if requested
@@ -104,6 +109,7 @@ function initAnswers(questionnum) {
 		if (answer.type === "gvt") {
 			var gvtLi = document.createElement("li");
 			gvtLi.className = "gvt";
+			gvtLi.answer = answer;
 			
 			var gvtName = document.createElement("div");
 			gvtName.textContent = answer.name;
@@ -123,6 +129,7 @@ function initAnswers(questionnum) {
 				answerLi.textContent = candidate.index + " - " + candidate.name;
 				answerLi.className = "preference";
 				answerLi.dataset.index = candidate.index;
+				answerLi.answer = candidate;
 				gvtUl.appendChild(answerLi);
 			}
 			
@@ -132,12 +139,13 @@ function initAnswers(questionnum) {
 			answerLi.textContent = answer.index + " - " + answer.name;
 			answerLi.className = "preference";
 			answerLi.dataset.index = answer.index;
+			answerLi.answer = answer;
 			document.getElementById("stv_choices_available").appendChild(answerLi);
 		}
 	}
 	
 	// Setup Sortable
-	var stvs = document.querySelectorAll(".stv-toplevel");
+	var stvs = document.querySelectorAll(".stv-toplevel, .gvt-preferences");
 	for (var i = 0; i < stvs.length; i++) { // for..of on NodeList's is not portable
 		stvs[i].sortable = Sortable.create(stvs[i], {
 			group: {name: "stv_choices"},
