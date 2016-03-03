@@ -16,12 +16,14 @@
 function _onStart(evt) {
 	if (evt.item.classList.contains("gvt")) {
 		// Prevent moving GVTs to second level
-		for (var gvtPreferences of document.querySelectorAll(".gvt-preferences")) {
-			gvtPreferences.sortable.options.group.put = false;
+		var preferencesList = document.querySelectorAll(".gvt-preferences");
+		for (var i = 0; i < preferencesList.length; i++) {
+			preferencesList[i].sortable.options.group.put = false;
 		}
 	} else {
-		for (var gvtPreferences of document.querySelectorAll(".gvt-preferences")) {
-			gvtPreferences.sortable.options.group.put = true;
+		var preferencesList = document.querySelectorAll(".gvt-preferences");
+		for (var i = 0; i < preferencesList.length; i++) {
+			preferencesList[i].sortable.options.group.put = true;
 		}
 	}
 }
@@ -31,8 +33,9 @@ function _onAdd(evt) {
 	// TODO: Allow adding a GVT member back
 	if (evt.to.classList.contains("gvt-preferences")) {
 		// Break up the GVT
-		for (var gvtPreference of evt.to.querySelectorAll(".preference")) {
-			evt.to.parentNode.parentNode.insertBefore(gvtPreference, evt.to.parentNode);
+		var preferences = evt.to.querySelectorAll(".preference");
+		for (var i = 0; i < preferences.length; i++) {
+			evt.to.parentNode.parentNode.insertBefore(preferences[i], evt.to.parentNode);
 		}
 		evt.to.parentNode.parentNode.removeChild(evt.to.parentNode);
 	}
@@ -134,8 +137,9 @@ function initAnswers(questionnum) {
 	}
 	
 	// Setup Sortable
-	for (var e of document.querySelectorAll(".stv-toplevel, .gvt-preferences")) {
-		e.sortable = Sortable.create(e, {
+	var stvs = document.querySelectorAll(".stv-toplevel");
+	for (var i = 0; i < stvs.length; i++) { // for..of on NodeList's is not portable
+		stvs[i].sortable = Sortable.create(stvs[i], {
 			group: {name: "stv_choices"},
 			onStart: _onStart,
 			onAdd: _onAdd,
