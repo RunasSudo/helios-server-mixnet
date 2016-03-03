@@ -26,3 +26,7 @@
 .gvt-name {
 	font-style: italic;
 }
+
+.gvt {
+	border: 1px solid #555;
+}
