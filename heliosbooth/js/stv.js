@@ -30,25 +30,32 @@ function _onStart(evt) {
 
 function _onAdd(evt) {
 	// Trying to add something to a GVT
-	// TODO: Allow adding a GVT member back
 	if (evt.to.classList.contains("gvt-preferences")) {
-		// Break up the GVT
-		var preferences = evt.to.querySelectorAll(".preference");
-		for (var i = 0; i < preferences.length; i++) {
-			var preference = preferences[i];
-			
-			// Add the GVT name to the candidate's name
-			if (preference.dataset.gvt)
-				preference.textContent = preference.dataset.index + " - " + preference.dataset.name + " (" + preference.dataset.gvt + ")";
-			
-			evt.to.parentNode.parentNode.insertBefore(preference, evt.to.parentNode);
+		if (!evt.item.dataset.gvt || evt.item.dataset.gvt !== evt.to.parentNode.dataset.name) {
+			// Break up the GVT
+			var preferences = evt.to.querySelectorAll(".preference");
+			for (var i = 0; i < preferences.length; i++) {
+				var preference = preferences[i];
+				
+				// Add the GVT name to the candidate's name
+				if (preference.dataset.gvt)
+					preference.textContent = preference.dataset.index + " - " + preference.dataset.name + " (" + preference.dataset.gvt + ")";
+				
+				evt.to.parentNode.parentNode.insertBefore(preference, evt.to.parentNode);
+			}
+			evt.to.parentNode.parentNode.removeChild(evt.to.parentNode);
+		} else {
+			// Remove the GVT name when adding back
+			evt.item.textContent = evt.item.dataset.index + " - " + evt.item.dataset.name;
 		}
-		evt.to.parentNode.parentNode.removeChild(evt.to.parentNode);
 	}
 }
 
 function _onRemove(evt) {
 	if (evt.from.classList.contains("gvt-preferences")) {
+		if (evt.item.dataset.gvt)
+			evt.item.textContent = evt.item.dataset.index + " - " + evt.item.dataset.name + " (" + evt.item.dataset.gvt + ")";
+		
 		if (evt.from.children.length === 0) {
 			// No more preferences in GVT
 			evt.from.parentNode.parentNode.removeChild(evt.from.parentNode);
@@ -140,7 +147,7 @@ function initAnswers(questionnum) {
 					answerLi.dataset.index = candidate.index + 1;
 					
 					answerLi.dataset.name = candidate.name;
-					answerLi.dataset.gvt = gvt.name;
+					answerLi.dataset.gvt = answer.name;
 					
 					gvtUl.appendChild(answerLi);
 				}
