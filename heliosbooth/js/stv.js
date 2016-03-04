@@ -38,8 +38,8 @@ function _onAdd(evt) {
 			var preference = preferences[i];
 			
 			// Add the GVT name to the candidate's name
-			if (preference.answer.gvt)
-				preference.textContent = preference.answer.index + " - " + preference.answer.name + " (" + preference.answer.gvt.name + ")";
+			if (preference.dataset.gvt)
+				preference.textContent = preference.dataset.index + " - " + preference.dataset.name + " (" + preference.dataset.gvt + ")";
 			
 			evt.to.parentNode.parentNode.insertBefore(preference, evt.to.parentNode);
 		}
@@ -68,79 +68,94 @@ function updateAnswerBox(evt) {
 }
 
 function initAnswers(questionnum) {
-	var answers = [];
-	
-	for (var i = 0; i < BOOTH.election.questions[questionnum]["answers"].length; i++) {
-		// Record each candidate
-		var bits = BOOTH.election.questions[questionnum]["answers"][i].split("/");
+	if (BOOTH.stv_store && BOOTH.stv_store[questionnum]) {
+		// Try to restore answers
+		var stv_choices = document.getElementById("stv_choices");
+		stv_choices.parentNode.replaceChild(BOOTH.stv_store[questionnum], stv_choices);
+	} else {
+		// No saved answers. Rebuild answers from scratch
+		var answers = [];
 		
-		var candidate = {};
-		candidate.type = "candidate";
-		candidate.name = bits[0];
-		candidate.index = i;
-		
-		if (bits.length >= 3) {
-			var gvt = answers.find(function(e, index, a) {
-				return e.type === "gvt" && e.name === bits[1];
-			});
-			if (!gvt) {
-				gvt = {};
-				gvt.type = "gvt";
-				gvt.name = bits[1];
-				gvt.candidates = [];
-				answers.push(gvt);
+		for (var i = 0; i < BOOTH.election.questions[questionnum]["answers"].length; i++) {
+			// Record each candidate
+			var bits = BOOTH.election.questions[questionnum]["answers"][i].split("/");
+			
+			var candidate = {};
+			candidate.type = "candidate";
+			candidate.name = bits[0];
+			candidate.index = i;
+			
+			if (bits.length >= 3) {
+				var gvt = answers.find(function(e, index, a) {
+					return e.type === "gvt" && e.name === bits[1];
+				});
+				if (!gvt) {
+					gvt = {};
+					gvt.type = "gvt";
+					gvt.name = bits[1];
+					gvt.candidates = [];
+					answers.push(gvt);
+				}
+				
+				candidate.gvtorder = parseFloat(bits[2]);
+				candidate.gvt = gvt;
+				
+				gvt.candidates.push(candidate);
+			} else {
+				answers.push(candidate);
 			}
-			
-			candidate.gvtorder = parseFloat(bits[2]);
-			candidate.gvt = gvt;
-			
-			gvt.candidates.push(candidate);
-		} else {
-			answers.push(candidate);
 		}
-	}
-	
-	// Randomise answers if requested
-	if (BOOTH.election_metadata && BOOTH.election_metadata.randomize_answer_order) {
-		shuffleArray(answers);
-	}
-	
-	for (var answer of answers) {
-		if (answer.type === "gvt") {
-			var gvtLi = document.createElement("li");
-			gvtLi.className = "gvt";
-			gvtLi.answer = answer;
-			
-			var gvtName = document.createElement("div");
-			gvtName.textContent = answer.name;
-			gvtName.className = "gvt-name";
-			gvtLi.appendChild(gvtName);
-			
-			var gvtUl = document.createElement("ul");
-			gvtUl.className = "gvt-preferences";
-			gvtLi.appendChild(gvtUl);
-			
-			answer.candidates.sort(function(a, b) {
-				return b.gvtoder - a.gvtorder;
-			});
-			
-			for (var candidate of answer.candidates) {
+		
+		// Randomise answers if requested
+		if (BOOTH.election_metadata && BOOTH.election_metadata.randomize_answer_order) {
+			shuffleArray(answers);
+		}
+		
+		for (var answer of answers) {
+			if (answer.type === "gvt") {
+				var gvtLi = document.createElement("li");
+				gvtLi.className = "gvt";
+				
+				gvtLi.dataset.name = answer.name;
+				
+				var gvtName = document.createElement("div");
+				gvtName.textContent = answer.name;
+				gvtName.className = "gvt-name";
+				gvtLi.appendChild(gvtName);
+				
+				var gvtUl = document.createElement("ul");
+				gvtUl.className = "gvt-preferences";
+				gvtLi.appendChild(gvtUl);
+				
+				answer.candidates.sort(function(a, b) {
+					return b.gvtoder - a.gvtorder;
+				});
+				
+				for (var i = 0; i < answer.candidates.length; i++) {
+					var candidate = answer.candidates[i];
+					
+					var answerLi = document.createElement("li");
+					answerLi.textContent = (candidate.index + 1) + " - " + candidate.name;
+					answerLi.className = "preference";
+					answerLi.dataset.index = candidate.index + 1;
+					
+					answerLi.dataset.name = candidate.name;
+					answerLi.dataset.gvt = gvt.name;
+					
+					gvtUl.appendChild(answerLi);
+				}
+				
+				document.getElementById("stv_choices_available").appendChild(gvtLi);
+			} else {
 				var answerLi = document.createElement("li");
-				answerLi.textContent = candidate.index + " - " + candidate.name;
+				answerLi.textContent = (answer.index + 1) + " - " + answer.name;
 				answerLi.className = "preference";
-				answerLi.dataset.index = candidate.index;
-				answerLi.answer = candidate;
-				gvtUl.appendChild(answerLi);
+				answerLi.dataset.index = answer.index + 1;
+				
+				answerLi.dataset.name = candidate.name;
+				
+				document.getElementById("stv_choices_available").appendChild(answerLi);
 			}
-			
-			document.getElementById("stv_choices_available").appendChild(gvtLi);
-		} else {
-			var answerLi = document.createElement("li");
-			answerLi.textContent = answer.index + " - " + answer.name;
-			answerLi.className = "preference";
-			answerLi.dataset.index = answer.index;
-			answerLi.answer = answer;
-			document.getElementById("stv_choices_available").appendChild(answerLi);
 		}
 	}
 	

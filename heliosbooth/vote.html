@@ -237,7 +237,12 @@ BOOTH.validate_question = function(question_num) {
         alert('You need to select at most ' + BOOTH.election.questions[question_num].answers.length + ' answer(s).');
         return false;
       }
-    
+      
+      if (answer[0].indexOf(-1) >= 0) {
+        alert('Invalid selection');
+        return false;
+      }
+      
       if (_.intersect(answer[0], answer[0]).length != answer[0].length) {
         alert('You cannot select the same choice more than once');
         return false;
@@ -357,7 +362,8 @@ BOOTH.show_question = function(question_num) {
   $(answer_array).each(function(i, ans) {
     if (BOOTH.election.workflow_type != "mixnet") {
       BOOTH.click_checkbox_script(question_num, ans, true);
-    } else {  
+    } else {
+      ans = _(ans).map(function(e){ return e + 1; }); // Candidate numbering starts at 1
       $("#question_stv_div input#stv_answer").val(ans.join(","));
     }
   });
@@ -377,10 +383,17 @@ BOOTH.stv_updated = function(question_num, answer) {
   if (!answer || answer == "") { 
     BOOTH.ballot.answers[question_num] = [];
   } else {
-    answer = answer.toString().split(",");
-    answer = _(answer).map(function(e){ return parseInt(e)});
+    answer = answer.toString().split(/[, ]+/);
+    answer = _(answer).map(function(e){
+      return (isNaN(e) ? -1 : (parseInt(e) - 1)); // Candidate numbering starts at 1
+    });
     BOOTH.ballot.answers[question_num] = [answer];
   }
+  
+  // Save the DOM when proceeding to next question
+  if (!BOOTH.stv_store)
+    BOOTH.stv_store = [];
+  BOOTH.stv_store[question_num] = document.getElementById("stv_choices").cloneNode(true);
 }
 
 BOOTH.click_checkbox = function(question_num, answer_num, checked_p) {
