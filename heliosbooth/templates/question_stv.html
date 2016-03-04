@@ -11,18 +11,21 @@
 
 <p style="font-size: 0.8em;">Drag and drop the candidates from below the line to above the line in order from most preferred to least preferred. You do not need to list all the candidates. Drag and drop the party name (in <i>italics</i>) to move all that party's candidates at once.</p>
 
-<div id="stv_choices" style="border: 1px solid black; padding: 0.5em;">
+<div id="stv_choices">
+<div style="border: 1px solid black; padding: 0 0.5em;">
 <span style="font-size: 0.6em;">Most preferred</span>
 <ul id="stv_choices_selected" class="stv-toplevel"></ul>
 <span style="font-size: 0.6em;">Least preferred</span>
-<hr>
-<span style="font-size: 0.6em;">Remaining candidates</span>
+</div>
+<div style="border: 1px solid black; padding: 0 0.5em 0.5em 0.5em; margin-top: 0.5em;">
+<span style="font-size: 0.6em;">Candidates not yet voted for</span>
 <ul id="stv_choices_available" class="stv-toplevel"></ul>
+</div>
 </div>
 
 <p style="font-size: 0.7em;">Alternatively, type the numbers corresponding to the candidates (e.g. 1,2,3,4) in order from most preferred to least preferred into the box below.</p>
 
-<input type="text" inputmode="numeric" id="stv_answer" id="stv_answer" value=""/>
+<textarea style="width: 100%; height: 3em; margin: 0;" id="stv_answer" id="stv_answer"></textarea>
 
 <div id="warning_box" style="color: green; text-align:center; font-size: 0.8em; padding-top:10px; padding-bottom: 10px; height:50px;">
 </div>
