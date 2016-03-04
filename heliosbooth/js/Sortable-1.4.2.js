@@ -235,7 +235,8 @@
 		_on(el, 'touchstart', this._onTapStart);
 
 		if (this.nativeDraggable) {
-			_on(el, 'dragover', this);
+			//_on(el, 'dragover', this);
+			_on(document, 'dragover', this);
 			_on(el, 'dragenter', this);
 		}
 
