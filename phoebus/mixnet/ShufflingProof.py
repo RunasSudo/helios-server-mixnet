@@ -46,11 +46,13 @@ from hashlib import sha256
 
 # Use configuration parameters from params.py
 import params
+import billiard
 
 from BitStream import BitStream
 
 from CiphertextCollection import CiphertextCollection
-from CiphertextCollectionMapping import CiphertextCollectionMapping
+from CiphertextCollectionMapping import CiphertextCollectionMapping, \
+    new_collection_mapping
 
 # Exceptions:
 from PVCExceptions import InvalidCiphertextCollectionMappingError
@@ -333,11 +335,15 @@ class ShufflingProof:
         # (ie. every mapping in proof._mappings[i] will initially be from the
         # original collection into proof._collections[i])
 
-        # generate new mappings
-        for i in range(0, security_parameter):
-            new_mapping = CiphertextCollectionMapping.new(original_collection)
+        # generate new mappings in parallel
+        pool = billiard.Pool()
+        async_params = [original_collection] * security_parameter
+        generate_mappings_pool = pool.map_async(new_collection_mapping, async_params)
+        for new_mapping in generate_mappings_pool.get(99999999):
             proof._mappings.append(new_mapping)
             proof._collections.append(new_mapping.apply(original_collection))
+        pool.close()
+        pool.join()
 
         # Generate the challenge
         proof._challenge = \

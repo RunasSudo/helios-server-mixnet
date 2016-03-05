@@ -49,6 +49,7 @@ from Crypto.Random.random import StrongRandom
 
 # Use configuration parameters from params.py
 import params
+import billiard
 
 from CiphertextCollection import CiphertextCollection
 from .CiphertextReencryptionInfo import CiphertextReencryptionInfo
@@ -56,6 +57,15 @@ from .CiphertextReencryptionInfo import CiphertextReencryptionInfo
 from PVCExceptions import IncompatibleCiphertextCollectionError
 from PVCExceptions import IncompatibleReencryptionInfoError
 from PVCExceptions import IncompatibleCiphertextCollectionMappingError
+
+
+def new_collection_mapping(original_collection):
+    """
+    CiphertextCollectionMapping.new wrapper, to be used with multiprocessing
+    module.
+    """
+    from Crypto.Random import atfork; atfork()
+    return CiphertextCollectionMapping.new(original_collection)
 
 
 def calculate_subtraction(params):
@@ -443,31 +453,14 @@ class CiphertextCollectionMapping:
 
         # Calculate C->B element by element, in the order of the element's
         # index in A.
-        for i in range(0, length):
-            indB = self._reordering[i]  # indB is the index of the element in B
-            indC = other_mapping._reordering[i] # index in C
-
-            # Now, we get the re-encryption from a \in A to b \in B
-            atob_reencryption = self._reencryptions[i]
-
-            # and the corresponding one from a to c \in C
-            atoc_reencryption = other_mapping._reencryptions[i]
-
-            # Generate the c-to-b re-encryption by subtracting a-to-c from
-            # a-to-b.
-            try:
-                ctob_reencryption = atob_reencryption.subtract(atoc_reencryption)
-            except IncompatibleReencryptionInfoError, e:
-                raise IncompatibleCiphertextCollectionMappingError( \
-                    "The given ciphertext collection mappings are incompatible"\
-                    " for rebase. It is likely that the origin collection for "\
-                    "each mapping is not the same. In particular, it would " \
-                    "seem that the %dth element of the origin collection is " \
-                    "incompatible between mappings. Inner exception message: " \
-                    "\"%s\"" % (i, str(e)))
-            
-            result._reencryptions[indC] = ctob_reencryption
-            result._reordering[indC] = indB
+        pool = billiard.Pool()
+        async_params = [(self, result, other_mapping, index) for index in range(0, length)]
+        results = pool.map_async(calculate_subtraction, async_params)
+        for reencryption, cindex, bindex in results.get(99999999):
+            result._reencryptions[cindex] = reencryption
+            result._reordering[cindex] = bindex
+        pool.close()
+        pool.join()
 
         # Do some resource intensive checks to ensure that result has the right
         # structure (only in debug mode)
