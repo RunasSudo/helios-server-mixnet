@@ -14,6 +14,10 @@ This is a fork of Ben Adida's Helios server, with support for mixnets using code
   * Input candidates using the format `Name/Party/1`, where the candidates are sorted within the GVT by the number (can be a decimal).
 * Optional IP logging support.
 
+### A word on security
+
+This implementation produces 80 shadow mixes for each shuffling proof, in accordance with the [original Helios paper](https://www.usenix.org/legacy/event/sec08/tech/full_papers/adida/adida.pdf). This is less than its inspiration, [Josh Benaloh's paper](https://www.usenix.org/legacy/event/evt06/tech/full_papers/benaloh/benaloh.pdf) (which recommends 100), and Zeus (which uses 128 by default). You may want to increase `CUSTOM_SHUFFLING_PROOF_SECURITY_PARAMETER` in *phoebus/mixnet/params.py* for increased security.
+
 ## Licence
 
 Copyright © 2016 RunasSudo (Yingtong Li)    

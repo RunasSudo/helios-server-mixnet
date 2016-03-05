@@ -88,7 +88,7 @@ CUSTOM_FALSE_PRIME_PROBABILITY = None
 # The integer security parameter used by the shuffling/mixing proof.
 # (see ShufflingProof comments)
 # If None, the security parameter will be selected based on SECURITY_LEVEL
-CUSTOM_SHUFFLING_PROOF_SECURITY_PARAMETER = None
+CUSTOM_SHUFFLING_PROOF_SECURITY_PARAMETER = 80 # Based on Adida - Helios: Web-based Open-Audit Voting (2008)
 
 
 # ============================================================================
