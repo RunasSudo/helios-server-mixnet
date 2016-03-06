@@ -82,9 +82,7 @@ for i in xrange(0, numMixnets):
 			
 			orig = CiphertextCollection(pk)
 			if i == 0:
-				# Sometimes reverse=True and sometimes reverse=False???
-				# TODO: Work out what's wrong
-				for ballot in sorted(ballots, key=lambda k: k['voter_uuid'], reverse=True):
+				for ballot in ballots:
 					ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
 					ciphertext.append(long(ballot["vote"]["answers"][q]["choices"][0]["alpha"]), long(ballot["vote"]["answers"][q]["choices"][0]["beta"]))
 					orig.add_ciphertext(ciphertext)
@@ -148,7 +146,7 @@ for q in xrange(0, numQuestions):
 				decryption_factor_combination *= factor
 		
 		# Check the claimed decryption
-		decryption_factor_combination *= (result + 1) # That +1 gets me every time...
+		decryption_factor_combination *= result
 		
 		if (decryption_factor_combination % P) != (long(ballot["choice"]["beta"]) % P):
 			print("FAIL")

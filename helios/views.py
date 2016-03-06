@@ -1461,7 +1461,7 @@ def voter_last_vote(request, election, voter_uuid):
 @return_json
 def ballot_list(request, election):
   """
-  this will order the ballots from most recent to oldest.
+  this will order the ballots in voter order.
   and optionally take a after parameter.
   """
   limit = after = None
@@ -1470,7 +1470,7 @@ def ballot_list(request, election):
   if request.GET.has_key('after'):
     after = datetime.datetime.strptime(request.GET['after'], '%Y-%m-%d %H:%M:%S')
 
-  voters = Voter.get_by_election(election, cast=True, order_by='cast_at', limit=limit, after=after)
+  voters = Voter.get_by_election(election, cast=True, limit=limit, after=after)
 
   # we explicitly cast this to a short cast vote
   return [v.last_cast_vote().ld_object.short.toDict(complete=True) for v in voters]
