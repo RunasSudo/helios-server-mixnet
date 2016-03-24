@@ -16,33 +16,27 @@
 
 # I love the smell of Python 3 in the morning
 
-import utils
 import argparse, itertools, json, sys
 from fractions import Fraction
 
-parser = argparse.ArgumentParser(description='Count an election using Wright STV.')
+parser = argparse.ArgumentParser(description='Count an election using instant-runoff voting.')
 
-parser.add_argument('election', help='Helios-style election.json specifying candidates')
-parser.add_argument('result', help='Helios-style gamma encoded result.json specifying ballots')
-parser.add_argument('question', type=int, help='The question number to tally', nargs='?', default=0)
+parser.add_argument('election', help='OpenSTV blt file')
 parser.add_argument('--verbose', help='Display extra information', action='store_true')
 parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
-parser.add_argument('--gamma', help="Display gamma values instead of lists of candidates", action='store_true')
+parser.add_argument('--ids', help="Display candidate IDs instead of lists of candidates", action='store_true')
 args = parser.parse_args()
 
 class Ballot:
-	def __init__(self, gamma, candidates, value=1):
+	def __init__(self, preferences, candidates, value=1):
 		global args
 		
-		self.gamma = gamma
-		self.preferences = Ballot.gammaToCandidates(gamma, candidates)
-		self.prettyPreferences = self.gamma if args.gamma else str([candidate.name for candidate in self.preferences])
+		self.rawPreferences = preferences
+		self.preferences = [candidates[x] for x in preferences]
+		self.prettyPreferences = self.rawPreferences if args.ids else [candidate.name for candidate in self.preferences]
 		
 		self.value = self.origValue = Fraction(value)
-		verboseLog("{:.2f}: {}".format(value, [x.name for x in self.preferences]))
-	
-	def gammaToCandidates(gamma, candidates):
-		return [candidates[x] for x in utils.to_absolute_answers(utils.gamma_decode(gamma, len(candidates)), len(candidates))]
+		verboseLog("{:.2f} : {}".format(float(self.value), ",".join([x.name for x in self.preferences])))
 
 class Candidate:
 	def __init__(self, name):
@@ -154,7 +148,7 @@ def countVotes(ballots, candidates, fast):
 		if fast and hasQuota(remainingCandidates[0], quota):
 			return remainingCandidates[0], exhausted
 		
-		if not fast and len(remainingCandidates) == 2:
+		if not fast and len(remainingCandidates) <= 2:
 			return remainingCandidates[0], exhausted
 		
 		# Bulk exclude as many candidates as possible
@@ -213,23 +207,31 @@ def countVotes(ballots, candidates, fast):
 		
 		count += 1
 
-with open(args.election, 'r') as electionFile:
-	election = json.load(electionFile)
-	
-	candidates = []
-	for candidate in election["questions"][args.question]["answers"]:
-		candidates.append(Candidate(candidate.split("/")[0])) # Just want the name
-	
-	with open(args.result, 'r') as resultFile:
-		results = json.load(resultFile)
-		
-		ballots = []
-		# Preprocess groups
-		for result, group in itertools.groupby(sorted(results[args.question])):
-			ballots.append(Ballot(result, candidates, len(list(group))))
+# Read blt
 
-if args.verbose:
-	ballots.sort(key=lambda k: k.gamma)
+ballotData = [] # Can't process until we know the candidates
+candidates = []
+with open(args.election, 'r') as electionFile:
+	electionLines = electionFile.read().splitlines()
+	
+	numCandidates = int(electionLines[0].split(' ')[0])
+	args.seats = int(electionLines[0].split(' ')[1])
+	
+	for i in range(1, len(electionLines)):
+		if electionLines[i] == '0': # End of ballots
+			break
+		bits = electionLines[i].split(' ')
+		preferences = [int(x) - 1 for x in bits[1:] if x != '0']
+		ballotData.append((bits[0], preferences))
+	
+	for j in range(i + 1, len(electionLines)):
+		candidates.append(Candidate(electionLines[j].strip('"')))
+	
+	assert len(candidates) == numCandidates
+
+ballots = []
+for ballot in ballotData:
+	ballots.append(Ballot(ballot[1], candidates, ballot[0]))
 
 elected, exhausted = countVotes(ballots, candidates, args.fast)
 print()
