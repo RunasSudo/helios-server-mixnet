@@ -26,6 +26,7 @@ parser.add_argument('--verbose', help='Display extra information', action='store
 parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
 parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >H-B', choices=['geq-droop', 'gt-hb'], default='geq-droop')
 parser.add_argument('--ids', help="Display candidate IDs instead of lists of candidates", action='store_true')
+parser.add_argument('--countback', help="Store electing quota of votes for a given candidate ID and store in a given blt file", nargs=2)
 args = parser.parse_args()
 
 class Ballot:
@@ -164,9 +165,11 @@ def countVotes(ballots, candidates, numSeats, fast):
 							# Since it retains its value and remains in the count, we will not count it as exhausted.
 						else:
 							verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences))
-							ballot.value *= multiplier
-							transferTo.ctvv += ballot.value
-							transferTo.ballots.append(ballot)
+							newBallot = copy.copy(ballot)
+							ballot.value *= (1 - multiplier)
+							newBallot.value *= multiplier
+							transferTo.ctvv += newBallot.value
+							transferTo.ballots.append(newBallot)
 					
 					candidate.ctvv = quota
 					
@@ -290,3 +293,25 @@ for candidate in provisionallyElected:
 print()
 
 print("---- Exhausted: {:.2f}".format(float(exhausted)))
+
+if args.countback:
+	candidate = candidates[int(args.countback[0]) - 1]
+	print("== STORING COUNTBACK DATA FOR {}".format(candidate.name))
+	
+	# Sanity check
+	ctvv = 0
+	for ballot in candidate.ballots:
+		ctvv += ballot.value
+	assert ctvv == candidate.ctvv
+	
+	for peCandidate in provisionallyElected:
+		candidates.remove(peCandidate)
+	
+	with open(args.countback[1], 'w') as countbackFile:
+		# Output blt
+		print("{} 1".format(len(candidates), args.seats), file=countbackFile)
+		for ballot in candidate.ballots:
+			print("{} {} 0".format(ballot.value, " ".join([str(candidates.index(x) + 1) for x in ballot.preferences if x in candidates])), file=countbackFile)
+		print("0", file=countbackFile)
+		for candidate in candidates:
+			print('"{}"'.format(candidate.name), file=countbackFile)
