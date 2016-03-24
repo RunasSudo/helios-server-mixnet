@@ -172,13 +172,14 @@ def countVotes(ballots, candidates, fast):
 			# Would the total number of votes to exclude allow a candidate to reach the quota?
 			lowestShortfall = float("inf")
 			for candidate in remainingCandidates:
-				if (quota - candidate.ctvv < lowestShortfall):
+				if not hasQuota(candidate, quota) and (quota - candidate.ctvv < lowestShortfall):
 					lowestShortfall = quota - candidate.ctvv
 			if votesToExclude >= lowestShortfall:
 				votesToExclude -= totalVote(group)
 				continue
 			
 			# Still here? Okay!
+			candidatesToExclude = []
 			for j in range(0, i + 1):
 				key, group = grouped[j]
 				candidatesToExclude.extend(group)

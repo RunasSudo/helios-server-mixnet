@@ -218,6 +218,7 @@ def countVotes(ballots, candidates, numSeats, fast):
 				continue
 			
 			# Still here? Okay!
+			candidatesToExclude = []
 			for j in range(0, i + 1):
 				key, group = grouped[j]
 				candidatesToExclude.extend(group)
