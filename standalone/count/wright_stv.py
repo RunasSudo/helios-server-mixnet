@@ -16,6 +16,7 @@
 
 # I love the smell of Python 3 in the morning
 
+import utils
 import argparse, copy, itertools, json, sys
 from fractions import Fraction
 
@@ -28,23 +29,6 @@ parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >
 parser.add_argument('--ids', help="Display candidate IDs instead of lists of candidates", action='store_true')
 parser.add_argument('--countback', help="Store electing quota of votes for a given candidate ID and store in a given blt file", nargs=2)
 args = parser.parse_args()
-
-class Ballot:
-	def __init__(self, preferences, candidates, value=1):
-		global args
-		
-		self.rawPreferences = preferences
-		self.preferences = [candidates[x] for x in preferences]
-		self.prettyPreferences = self.rawPreferences if args.ids else [candidate.name for candidate in self.preferences]
-		
-		self.value = self.origValue = Fraction(value)
-		verboseLog("{:.2f} : {}".format(float(self.value), ",".join([x.name for x in self.preferences])))
-
-class Candidate:
-	def __init__(self, name):
-		self.name = name
-		self.ctvv = Fraction('0')
-		self.ballots = []
 
 def verboseLog(string):
 	global args
@@ -65,7 +49,7 @@ def distributePreferences(ballots, remainingCandidates):
 		isExhausted = True
 		for preference in ballot.preferences:
 			if preference in remainingCandidates:
-				verboseLog("   - Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.prettyPreferences))
+				verboseLog("   - Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.prettyPreferences()))
 				
 				isExhausted = False
 				preference.ctvv += ballot.value
@@ -73,7 +57,7 @@ def distributePreferences(ballots, remainingCandidates):
 				
 				break
 		if isExhausted:
-			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
+			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences()))
 			exhausted += ballot.value
 			ballot.value = Fraction('0')
 	
@@ -160,11 +144,11 @@ def countVotes(ballots, candidates, numSeats, fast):
 					for ballot in candidate.ballots:
 						transferTo = surplusTransfer(ballot.preferences, candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
-							verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
+							verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences()))
 							# exhausted += ballot.value * multiplier
 							# Since it retains its value and remains in the count, we will not count it as exhausted.
 						else:
-							verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences))
+							verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences()))
 							newBallot = copy.copy(ballot)
 							ballot.value *= (1 - multiplier)
 							newBallot.value *= multiplier
@@ -255,31 +239,16 @@ def countVotes(ballots, candidates, numSeats, fast):
 		
 		count += 1
 
-# Read blt
+utils.Ballot.SHOW_IDS = args.ids
 
-ballotData = [] # Can't process until we know the candidates
-candidates = []
+# Read blt
 with open(args.election, 'r') as electionFile:
 	electionLines = electionFile.read().splitlines()
-	
-	numCandidates = int(electionLines[0].split(' ')[0])
-	args.seats = int(electionLines[0].split(' ')[1])
-	
-	for i in range(1, len(electionLines)):
-		if electionLines[i] == '0': # End of ballots
-			break
-		bits = electionLines[i].split(' ')
-		preferences = [int(x) - 1 for x in bits[1:] if x != '0']
-		ballotData.append((bits[0], preferences))
-	
-	for j in range(i + 1, len(electionLines)):
-		candidates.append(Candidate(electionLines[j].strip('"')))
-	
-	assert len(candidates) == numCandidates
+	ballots, candidates, args.seats = utils.readBLT(electionLines)
 
-ballots = []
-for ballot in ballotData:
-	ballots.append(Ballot(ballot[1], candidates, ballot[0]))
+if args.verbose:
+	for ballot in ballots:
+		print("{:.2f} : {}".format(float(ballot.value), ",".join([x.name for x in ballot.preferences])))
 
 provisionallyElected, exhausted = countVotes(ballots, candidates, args.seats, args.fast)
 print()

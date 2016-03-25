@@ -27,21 +27,13 @@ parser.add_argument('seats', type=int, help='The number of candidates to elect')
 parser.add_argument('question', type=int, help='The question number to tally', nargs='?', default=0)
 args = parser.parse_args()
 
-class Ballot:
-	def __init__(self, gamma, numCandidates, value=1):
-		global args
-		
-		self.gamma = gamma
-		self.preferences = utils.to_absolute_answers(utils.gamma_decode(gamma, numCandidates), numCandidates)
-		self.value = value
-
 candidates = []
 with open(args.election, 'r') as electionFile:
 	election = json.load(electionFile)
 	
 	candidates = []
 	for candidate in election["questions"][args.question]["answers"]:
-		candidates.append(candidate.split("/")[0]) # Just want the name
+		candidates.append(utils.Candidate(candidate.split("/")[0])) # Just want the name
 
 with open(args.result, 'r') as resultFile:
 	results = json.load(resultFile)
@@ -49,15 +41,7 @@ with open(args.result, 'r') as resultFile:
 	ballots = []
 	# Preprocess groups
 	for result, group in itertools.groupby(sorted(results[args.question])):
-		ballots.append(Ballot(result, len(candidates), len(list(group))))
+		preferences = utils.to_absolute_answers(utils.gamma_decode(result, len(candidates)), len(candidates))
+		ballots.append(utils.Ballot([candidates[x] for x in preferences], None, len(list(group))))
 
-# Output blt
-print("{} {}".format(len(candidates), args.seats))
-for ballot in ballots:
-	if ballot.preferences:
-		print("{} {} 0".format(ballot.value, " ".join(str(x + 1) for x in ballot.preferences)))
-	else:
-		print("{} 0".format(ballot.value))
-print("0")
-for candidate in candidates:
-	print('"{}"'.format(candidate))
+utils.writeBLT(ballots, candidates, args.seats)

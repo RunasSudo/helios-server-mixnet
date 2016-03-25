@@ -14,6 +14,75 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# ----- COMMON CLASSES AND FUNCTIONS -----
+from fractions import Fraction
+import sys
+
+class Ballot:
+	SHOW_IDS = False
+	
+	def __init__(self, preferences, candidates, value=1):
+		global args
+		
+		self.rawPreferences = preferences
+		self.preferences = [candidates[x] for x in preferences]
+		
+		self.value = self.origValue = Fraction(value)
+	
+	def prettyPreferences(self):
+		return self.rawPreferences if Ballot.SHOW_IDS else [candidate.name for candidate in self.preferences]
+
+class Candidate:
+	def __init__(self, name):
+		self.name = name
+		self.ctvv = Fraction('0')
+		self.ballots = []
+
+def readBLT(electionLines):
+	ballotData = [] # Can't process until we know the candidates
+	candidates = []
+	
+	# Read first line
+	numCandidates = int(electionLines[0].split(' ')[0])
+	seats = int(electionLines[0].split(' ')[1])
+	
+	# Read ballots
+	for i in range(1, len(electionLines)):
+		if electionLines[i] == '0': # End of ballots
+			break
+		bits = electionLines[i].split(' ')
+		preferences = [int(x) - 1 for x in bits[1:] if x != '0']
+		ballotData.append((bits[0], preferences))
+	
+	# Read candidates
+	for j in range(i + 1, len(electionLines)):
+		candidates.append(Candidate(electionLines[j].strip('"')))
+	
+	assert len(candidates) == numCandidates
+	
+	# Process ballots
+	ballots = []
+	for ballot in ballotData:
+		ballots.append(Ballot(ballot[1], candidates, ballot[0]))
+	
+	return ballots, candidates, seats
+
+def writeBLT(ballots, candidates, seats, outFile=sys.stdout):
+	print("{} {}".format(len(candidates), seats), file=outFile)
+	
+	for ballot in ballots:
+		if ballot.preferences:
+			print("{} {} 0".format(ballot.value, " ".join(str(candidates.index(x) + 1) for x in ballot.preferences)), file=outFile)
+		else:
+			print("{} 0".format(ballot.value), file=outFile)
+	
+	print("0", file=outFile)
+	
+	for candidate in candidates:
+		print('"{}"'.format(candidate.name), file=outFile)
+
+# ----- HELIOS GAMMA STUFF -----
+
 from bisect import bisect_right
 
 def to_relative_answers(choices, nr_candidates):
