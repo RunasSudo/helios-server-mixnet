@@ -21,16 +21,13 @@ import sys
 class Ballot:
 	SHOW_IDS = False
 	
-	def __init__(self, preferences, candidates, value=1):
+	def __init__(self, preferences, prettyPreferences, value=1):
 		global args
 		
-		self.rawPreferences = preferences
-		self.preferences = [candidates[x] for x in preferences]
+		self.preferences = preferences
+		self.prettyPreferences = prettyPreferences
 		
 		self.value = self.origValue = Fraction(value)
-	
-	def prettyPreferences(self):
-		return self.rawPreferences if Ballot.SHOW_IDS else [candidate.name for candidate in self.preferences]
 
 class Candidate:
 	def __init__(self, name):
@@ -46,29 +43,48 @@ def readBLT(electionLines):
 	numCandidates = int(electionLines[0].split(' ')[0])
 	seats = int(electionLines[0].split(' ')[1])
 	
-	# Read ballots
+	# Read withdrawn candidates
+	withdrawn = []
 	for i in range(1, len(electionLines)):
-		if electionLines[i] == '0': # End of ballots
+		if not electionLines[i].startswith("-"):
 			break
-		bits = electionLines[i].split(' ')
+		withdrawn.append(int(electionLines[i].strip("-")) - 1)
+	
+	# Read ballots
+	for j in range(i, len(electionLines)):
+		if electionLines[j] == '0': # End of ballots
+			break
+		bits = electionLines[j].split(' ')
 		preferences = [int(x) - 1 for x in bits[1:] if x != '0']
 		ballotData.append((bits[0], preferences))
 	
 	# Read candidates
-	for j in range(i + 1, len(electionLines)):
-		candidates.append(Candidate(electionLines[j].strip('"')))
+	for k in range(j + 1, len(electionLines)): # j + 1 to skip '0' line
+		candidates.append(Candidate(electionLines[k].strip('"')))
 	
 	assert len(candidates) == numCandidates
 	
 	# Process ballots
 	ballots = []
 	for ballot in ballotData:
-		ballots.append(Ballot(ballot[1], candidates, ballot[0]))
+		preferences = [candidates[x] for x in ballot[1] if x not in withdrawn]
+		if Ballot.SHOW_IDS:
+			ballots.append(Ballot(preferences, ballot[1], ballot[0]))
+		else:
+			ballots.append(Ballot(preferences, [x.name for x in preferences], ballot[0]))
+	
+	# Process withdrawn candidates
+	withdrawnCandidates = [candidates[x] for x in withdrawn]
+	for candidate in withdrawnCandidates:
+		candidates.remove(candidate)
 	
 	return ballots, candidates, seats
 
-def writeBLT(ballots, candidates, seats, outFile=sys.stdout):
+def writeBLT(ballots, candidates, seats, withdrawn=[], outFile=sys.stdout):
 	print("{} {}".format(len(candidates), seats), file=outFile)
+	
+	for candidate in withdrawn:
+		print("-{}".format(candidates.index(candidate) + 1), file=outFile)
 	
 	for ballot in ballots:
 		if ballot.preferences:

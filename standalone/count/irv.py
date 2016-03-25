@@ -47,7 +47,7 @@ def distributePreferences(ballots, remainingCandidates):
 		isExhausted = True
 		for preference in ballot.preferences:
 			if preference in remainingCandidates:
-				verboseLog("   - Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.prettyPreferences()))
+				verboseLog("   - Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.prettyPreferences))
 				
 				isExhausted = False
 				preference.ctvv += ballot.value
@@ -55,7 +55,7 @@ def distributePreferences(ballots, remainingCandidates):
 				
 				break
 		if isExhausted:
-			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences()))
+			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
 			exhausted += ballot.value
 			ballot.value = Fraction('0')
 	
@@ -89,10 +89,10 @@ def exclude(candidate, remainingCandidates):
 	for ballot in candidate.ballots:
 		transferTo = excludedTransfer(ballot.preferences, candidate, remainingCandidates)
 		if transferTo == False:
-			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences()))
+			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
 			exhausted += ballot.value
 		else:
-			verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences()))
+			verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences))
 			transferTo.ctvv += ballot.value
 			transferTo.ballots.append(ballot)
 	

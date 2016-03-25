@@ -49,7 +49,7 @@ def distributePreferences(ballots, remainingCandidates):
 		isExhausted = True
 		for preference in ballot.preferences:
 			if preference in remainingCandidates:
-				verboseLog("   - Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.prettyPreferences()))
+				verboseLog("   - Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.prettyPreferences))
 				
 				isExhausted = False
 				preference.ctvv += ballot.value
@@ -57,7 +57,7 @@ def distributePreferences(ballots, remainingCandidates):
 				
 				break
 		if isExhausted:
-			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences()))
+			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
 			exhausted += ballot.value
 			ballot.value = Fraction('0')
 	
@@ -144,11 +144,11 @@ def countVotes(ballots, candidates, numSeats, fast):
 					for ballot in candidate.ballots:
 						transferTo = surplusTransfer(ballot.preferences, candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
-							verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences()))
+							verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
 							# exhausted += ballot.value * multiplier
 							# Since it retains its value and remains in the count, we will not count it as exhausted.
 						else:
-							verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences()))
+							verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences))
 							newBallot = copy.copy(ballot)
 							ballot.value *= (1 - multiplier)
 							newBallot.value *= multiplier
@@ -273,14 +273,9 @@ if args.countback:
 		ctvv += ballot.value
 	assert ctvv == candidate.ctvv
 	
+	candidatesToExclude = []
 	for peCandidate in provisionallyElected:
-		candidates.remove(peCandidate)
+		candidatesToExclude.append(peCandidate)
 	
 	with open(args.countback[1], 'w') as countbackFile:
-		# Output blt
-		print("{} 1".format(len(candidates), args.seats), file=countbackFile)
-		for ballot in candidate.ballots:
-			print("{} {} 0".format(ballot.value, " ".join([str(candidates.index(x) + 1) for x in ballot.preferences if x in candidates])), file=countbackFile)
-		print("0", file=countbackFile)
-		for candidate in candidates:
-			print('"{}"'.format(candidate.name), file=countbackFile)
+		utils.writeBLT(candidate.ballots, candidates, 1, candidatesToExclude, countbackFile)
