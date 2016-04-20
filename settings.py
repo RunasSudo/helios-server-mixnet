@@ -77,7 +77,7 @@ SECRET_KEY = get_from_env('SECRET_KEY', 'replaceme')
 # If in production, you got a bad request (400) error
 #More info: https://docs.djangoproject.com/en/1.7/ref/settings/#allowed-hosts (same for 1.6)
 
-ALLOWED_HOSTS = ['localhost'] # change to your allowed hosts
+ALLOWED_HOSTS = get_from_env('ALLOWED_HOSTS', 'localhost').split(",")
 
 # Secure Stuff
 if (get_from_env('SSL', '0') == '1'):
@@ -109,6 +109,7 @@ MIDDLEWARE_CLASSES = (
 
     # secure a bunch of things
     'djangosecure.middleware.SecurityMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -173,12 +174,6 @@ URL_HOST = get_from_env("URL_HOST", "http://localhost:8000").rstrip("/")
 # elections, as your elections' cast_url will then be incorrect.
 # SECURE_URL_HOST = "https://localhost:8443"
 SECURE_URL_HOST = get_from_env("SECURE_URL_HOST", URL_HOST).rstrip("/")
-
-# this additional host is used to iframe-isolate the social buttons,
-# which usually involve hooking in remote JavaScript, which could be
-# a security issue. Plus, if there's a loading issue, it blocks the whole
-# page. Not cool.
-SOCIALBUTTONS_URL_HOST= get_from_env("SOCIALBUTTONS_URL_HOST", SECURE_URL_HOST).rstrip("/")
 
 # election stuff
 SITE_TITLE = get_from_env('SITE_TITLE', 'Helios Voting')

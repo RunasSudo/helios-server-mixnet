@@ -76,18 +76,6 @@ def get_election_govote_url(election):
 def get_castvote_url(cast_vote):
   return settings.URL_HOST + reverse(castvote_shortcut, args=[cast_vote.vote_tinyhash])
 
-# social buttons
-def get_socialbuttons_url(url, text):
-  if not text:
-    return None
-
-  return "%s%s?%s" % (settings.SOCIALBUTTONS_URL_HOST,
-                      reverse(socialbuttons),
-                      urllib.urlencode({
-        'url' : url,
-        'text': text.encode('utf-8')
-        }))
-
 
 ##
 ## remote auth utils
@@ -236,6 +224,7 @@ def election_new(request):
     election_form = forms.ElectionForm(initial={'private_p': settings.HELIOS_PRIVATE_DEFAULT,
                                                 'help_email': user.info.get("email", '')})
   else:
+    check_csrf(request)
     election_form = forms.ElectionForm(request.POST)
 
     if election_form.is_valid():
@@ -286,6 +275,7 @@ def one_election_edit(request, election):
       values[attr_name] = getattr(election, attr_name)
     election_form = forms.ElectionForm(values)
   else:
+    check_csrf(request)
     election_form = forms.ElectionForm(request.POST)
 
     if election_form.is_valid():
@@ -371,9 +361,6 @@ def one_election_view(request, election):
   if election.result:
     status_update_message = u"Results are in for %s" % election.name
 
-  # a URL for the social buttons
-  socialbuttons_url = get_socialbuttons_url(election_url, status_update_message)
-
   trustees = Trustee.get_by_election(election)
   mixnets = election.mixnets.filter()
 
@@ -386,7 +373,7 @@ def one_election_view(request, election):
                           'can_feature_p': can_feature_p, 'election_url' : election_url,
                           'vote_url': vote_url, 'election_badge_url' : election_badge_url,
                           'show_result': show_result,
-                          'test_cookie_url': test_cookie_url, 'socialbuttons_url' : socialbuttons_url,
+                          'test_cookie_url': test_cookie_url,
                           'mixnets': mixnets})
 
 def test_cookie(request):
@@ -407,14 +394,6 @@ def test_cookie_2(request):
 def nocookies(request):
   retest_url = "%s?%s" % (reverse(test_cookie), urllib.urlencode({'continue_url' : request.GET['continue_url']}))
   return render_template(request, 'nocookies', {'retest_url': retest_url})
-
-def socialbuttons(request):
-  """
-  just render the social buttons for sharing a URL
-  expecting "url" and "text" in request.GET
-  """
-  return render_template(request, 'socialbuttons',
-                         {'url': request.GET['url'], 'text':request.GET['text']})
 
 ##
 ## Trustees and Public Key
@@ -440,6 +419,7 @@ def new_trustee(request, election):
   if request.method == "GET":
     return render_template(request, 'new_trustee', {'election' : election})
   else:
+    check_csrf(request)
     # get the public key and the hash, and add it
     name = request.POST['name']
     email = request.POST['email']
@@ -816,14 +796,10 @@ def one_election_cast_done(request, election):
   # if logout:
   #   auth_views.do_local_logout(request)
 
-  # tweet/fb your vote
-  socialbuttons_url = get_socialbuttons_url(cv_url, 'I cast a vote in %s' % election.name)
-
   # remote logout is happening asynchronously in an iframe to be modular given the logout mechanism
   # include_user is set to False if logout is happening
   return render_template(request, 'cast_done', {'election': election,
-                                                'vote_hash': vote_hash, 'logout': logout,
-                                                'socialbuttons_url': socialbuttons_url},
+                                                'vote_hash': vote_hash, 'logout': logout},
                          include_user=(not logout))
 
 @election_view()
