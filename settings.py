@@ -263,12 +263,6 @@ import djcelery
 djcelery.setup_loader()
 
 
-# ----------
-# helios-server-mixnet options
-LOG_VOTE_IP = False
-# ----------
-
-
 # for testing
 TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner'
 # this effectively does CELERY_ALWAYS_EAGER = True
