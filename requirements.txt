@@ -23,3 +23,5 @@ django-ses==0.6.0
 validate_email==1.2
 oauth2client==1.2
 pycrypto==2.6.1
+rollbar==0.12.1
+

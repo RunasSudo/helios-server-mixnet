@@ -656,20 +656,25 @@ def one_election_cast_confirm(request, election):
     vote = datatypes.LDObject.fromDict(utils.from_json(encrypted_vote),
         type_hint='phoebus/EncryptedVote').wrapped_obj
 
+    if 'HTTP_X_FORWARDED_FOR' in request.META:
+      # HTTP_X_FORWARDED_FOR sometimes have a comma delimited list of IP addresses
+      # Here we want the originating IP address
+      # See http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/x-forwarded-headers.html
+      # and https://en.wikipedia.org/wiki/X-Forwarded-For
+      #
+      # Real client IP is apparently guaranteed by Heroku to be the *last* item in the header.
+      cast_ip = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[-1].strip() or None
+    else:
+      cast_ip = request.META.get('REMOTE_ADDR', None)
+
     # prepare the vote to cast
     cast_vote_params = {
       'vote' : vote,
       'voter' : voter,
       'vote_hash': vote_fingerprint,
-      'cast_at': datetime.datetime.utcnow()
+      'cast_at': datetime.datetime.utcnow(),
+      'cast_ip': cast_ip
     }
-    
-    if settings.LOG_VOTE_IP:
-#      if request.META.get('HTTP_X_FORWARDED_FOR'):
-#        # Real client IP is apparently guaranteed by Heroku to be the *last* item in the header.
-#        cast_vote_params['cast_from'] = request.META.get('HTTP_X_FORWARDED_FOR').split(',')[-1]
-#      else:
-        cast_vote_params['cast_from'] = request.META.get('REMOTE_ADDR')
 
     cast_vote = CastVote(**cast_vote_params)
   else:
@@ -859,7 +864,7 @@ def one_election_audited_ballots(request, election):
   if request.GET.has_key('vote_hash'):
     b = AuditedBallot.get(election, request.GET['vote_hash'])
     return HttpResponse(b.raw_vote, content_type="text/plain")
-
+    
   after = request.GET.get('after', None)
   offset= int(request.GET.get('offset', 0))
   limit = int(request.GET.get('limit', 50))
@@ -986,12 +991,15 @@ def one_election_register(request, election):
 @election_admin(frozen=False)
 def one_election_save_questions(request, election):
   check_csrf(request)
-
-  election.questions = utils.from_json(request.POST['questions_json'])
-  election.save()
-
-  # always a machine API
-  return SUCCESS
+  
+  questions = utils.from_json(request.POST['questions_json'])
+  questions_saved = election.save_questions_safely(questions)
+  
+  if questions_saved:
+    election.save()
+    return SUCCESS
+  else:
+    return FAILURE
 
 @transaction.atomic
 @election_admin(frozen=False)

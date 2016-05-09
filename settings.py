@@ -282,8 +282,19 @@ VERIFIER_STATIC_PATH = ROOT_PATH + '/phoebus_ui/static/phoebus/verifier/'
 BOOTH_STATIC_PATH = ROOT_PATH + '/heliosbooth/'
 VERIFIER_STATIC_PATH = ROOT_PATH + '/heliosverifier/'
 
+# Rollbar Error Logging
+ROLLBAR_ACCESS_TOKEN = get_from_env('ROLLBAR_ACCESS_TOKEN', None)
+if ROLLBAR_ACCESS_TOKEN:
+  print "setting up rollbar"
+  MIDDLEWARE_CLASSES += ('rollbar.contrib.django.middleware.RollbarNotifierMiddleware',)
+  ROLLBAR = {
+    'access_token': ROLLBAR_ACCESS_TOKEN,
+    'environment': 'development' if DEBUG else 'production',  
+  }
+
 # useful trick for custom settings
 try:
     from local_settings import *
 except ImportError:
     pass
+

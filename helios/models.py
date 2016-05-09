@@ -405,6 +405,23 @@ class Election(HeliosModel):
       return cls.objects.get(short_name=short_name)
     except cls.DoesNotExist:
       return None
+    
+  def save_questions_safely(self, questions):
+    """
+    Because Django doesn't let us override properties in a Pythonic way... doing the brute-force thing.
+    """
+    # verify all the answer_urls
+    for q in questions:
+      for answer_url in q['answer_urls']:
+        if not answer_url or answer_url == "":
+          continue
+          
+        # abort saving if bad URL
+        if not (answer_url[:7] == "http://" or answer_url[:8]== "https://"):
+          return False
+    
+    self.questions = questions
+    return True
 
   def add_voters_file(self, uploaded_file):
     """
@@ -1181,7 +1198,7 @@ class Voter(HeliosModel):
     if self.voter_password:
       raise Exception("password already exists")
     
-    self.voter_password = heliosutils.random_string(length, alphabet='abcdefghijkmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ23456789')
+    self.voter_password = heliosutils.random_string(length, alphabet='abcdefghjkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789')
 
   def store_vote(self, cast_vote):
     # only store the vote if it's cast later than the current one
@@ -1211,7 +1228,6 @@ class CastVote(HeliosModel):
   vote_tinyhash = models.CharField(max_length=50, null=True, unique=True)
 
   cast_at = models.DateTimeField(auto_now_add=True)
-  cast_from = models.GenericIPAddressField(null=True)
 
   # some ballots can be quarantined (this is not the same thing as provisional)
   quarantined_p = models.BooleanField(default=False, null=False)
@@ -1220,6 +1236,9 @@ class CastVote(HeliosModel):
   # when is the vote verified?
   verified_at = models.DateTimeField(null=True)
   invalidated_at = models.DateTimeField(null=True)
+  
+  # auditing purposes, like too many votes from the same IP, if it isn't expected
+  cast_ip = models.GenericIPAddressField(null=True)
 
   @property
   def datatype(self):
