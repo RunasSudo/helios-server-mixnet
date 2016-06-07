@@ -2,7 +2,7 @@
 
 Helios is an end-to-end verifiable voting system.
 
-This is a fork of Ben Adida's Helios server, with support for mixnets using code pulled in from [Zeus](https://github.com/grnet/zeus), but without the other changes made in Zeus, and with some other minor changes.
+This is a fork of [Ben Adida's Helios server](https://github.com/benadida/helios-server), with support for mixnets using code pulled in from [Zeus](https://github.com/grnet/zeus), but without the other changes made in Zeus, and with some other minor changes.
 
 ## Features
 
@@ -12,7 +12,6 @@ This is a fork of Ben Adida's Helios server, with support for mixnets using code
 * Improved support for password authentication.
 * Group voting ticket support.
   * Input candidates using the format `Name/Party/1`, where the candidates are sorted within the GVT by the number (can be a decimal).
-* Optional IP logging support.
 
 ### A word on security
 
