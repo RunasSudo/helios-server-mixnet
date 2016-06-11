@@ -17,6 +17,15 @@ This is a fork of [Ben Adida's Helios server](https://github.com/benadida/helios
 
 This implementation produces 80 shadow mixes for each shuffling proof, in accordance with the [original Helios paper](https://www.usenix.org/legacy/event/sec08/tech/full_papers/adida/adida.pdf). This is less than its inspiration, [Josh Benaloh's paper](https://www.usenix.org/legacy/event/evt06/tech/full_papers/benaloh/benaloh.pdf) (which recommends 100), and Zeus (which uses 128 by default). You may want to increase `CUSTOM_SHUFFLING_PROOF_SECURITY_PARAMETER` in *phoebus/mixnet/params.py* for increased security.
 
+## Acknowledgements
+
+I'd like to thank:
+
+* Ben Adida, for his immense amount of work implementing [Helios](https://github.com/benadida/helios-server)
+* Josh Benaloh, for his [*Simple Verifiable Elections*](https://www.usenix.org/legacy/event/evt06/tech/full_papers/benaloh/benaloh.pdf) paper that forms the basis of this family of voting systems
+* Lázaro Clapp, Sergio Rajsbaum and Hugo Rodriguez, for their work on [svelib](https://github.com/HRodriguez/svelib), a sine qua non for this project given my lack of cryptographic expertise
+* [/u/jnd-au](https://www.reddit.com/user/jnd-au) and the rest of the [Reddit Model Parliament of  Australia](https://www.reddit.com/r/ModelAustralia/) community for testing and suggesting improvements
+
 ## Licence
 
 Copyright © 2016 RunasSudo (Yingtong Li)    
