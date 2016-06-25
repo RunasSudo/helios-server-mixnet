@@ -1482,6 +1482,7 @@ def new_mixnet(request, election):
   if request.method == "GET":
     return render_template(request, 'new_mixnet', {'election' : election})
   else:
+    check_csrf(request)
     params = {'election': election, 'mix_order': election.mixnets.count(),
               'name': request.POST['name'],
               'email': request.POST['email'],
