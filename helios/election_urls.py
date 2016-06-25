@@ -26,6 +26,7 @@ urlpatterns = patterns('',
     # adding trustees
     (r'^/trustees/$', list_trustees),
     (r'^/trustees/view$', list_trustees_view),
+    (r'^/trustees/edit-threshold$', edit_trustee_threshold),
     (r'^/trustees/new$', new_trustee),
     (r'^/trustees/add-helios$', new_trustee_helios),
     (r'^/trustees/delete$', delete_trustee),

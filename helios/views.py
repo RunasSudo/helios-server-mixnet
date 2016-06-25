@@ -411,8 +411,15 @@ def list_trustees_view(request, election):
   trustees = Trustee.get_by_election(election)
   user = get_user(request)
   admin_p = security.user_can_admin_election(user, election)
-
+  
   return render_template(request, 'list_trustees', {'election': election, 'trustees': trustees, 'admin_p':admin_p})
+
+@election_admin(frozen=False)
+def edit_trustee_threshold(request, election):
+  check_csrf(request)
+  election.trustee_threshold = int(request.POST['trustee_threshold'])
+  election.save()
+  return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(list_trustees_view, args=[election.uuid]))
 
 @election_admin(frozen=False)
 def new_trustee(request, election):

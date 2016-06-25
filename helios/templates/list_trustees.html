@@ -56,17 +56,44 @@ No public key uploaded yet.
 {% endif %}
 </p>
 
-{% if election.encrypted_tally %}
-{% if t.decryption_factors %}
-<b>tally recorded for this trustee.</b>
+{% if election.trustee_threshold > 0 %}
+<p>
+{% if t.commitment %}
+  <b>Commitment recorded for this trustee.</b>
 {% else %}
-<em>waiting for this trustee's tally</em>
+  <em>Waiting for this trustee's commitment.</em>
 {% endif %}
+</p>
+{% endif %}
+
+{% if election.encrypted_tally %}
+<p>
+{% if t.decryption_factors %}
+  <b>Tally recorded for this trustee.</b>
+{% else %}
+  <em>Waiting for this trustee's tally</em>
+{% endif %}
+</p>
 {% endif %}
 </li>
 {% endfor %}
 </ul>
 
+{% endif %}
+
+{% if admin_p and not election.frozen_at %}
+<form method="post" action="{% url "helios.views.edit_trustee_threshold" election.uuid %}">
+    <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+    <input type="number" name="trustee_threshold" style="display: inline; width: 4em;" value="{{election.trustee_threshold}}">
+    trustees are required to decrypt the ballots. (0 = all)
+    <input type="submit" value="Change">
+</form>
+{% else %}
+{% if election.trustee_threshold <= 0 %}
+    All trustees are required to decrypt the ballots.
+{% else %}
+    {{election.trustee_threshold}} trustees are required to decrypt the ballots.
+{% endif %}
 {% endif %}
 
 {% endblock %}

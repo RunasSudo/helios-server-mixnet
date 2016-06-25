@@ -294,6 +294,8 @@ class Election(HeliosModel):
   # downloadable election info
   election_info_url = models.CharField(max_length=300, null=True)
 
+  trustee_threshold = models.IntegerField(default=0)
+
   # metadata for the election
   @property
   def metadata(self):
@@ -536,6 +538,14 @@ class Election(HeliosModel):
             'type': 'trustee keypairs',
             'action': 'have trustee %s generate a keypair' % t.name
             })
+
+    if self.trustee_threshold > 0:
+      for t in trustees:
+        if t.commitment == None:
+          issues.append({
+              'type': 'trustee commitments',
+              'action': 'have trustee %s generate a commitment' % t.name
+              })
 
     if self.voter_set.count() == 0 and not self.openreg:
       issues.append({
@@ -1367,6 +1377,9 @@ class Trustee(HeliosModel):
   # proof of knowledge of secret key
   pok = LDObjectField(type_hint = 'legacy/DLogProof',
                       null=True)
+
+  # threshold encryption commitment
+  commitment = LDObjectField(type_hint = 'phoebus/ThresholdEncryptionCommitment', null=True)
 
   # decryption factors
   decryption_factors = LDObjectField(type_hint = datatypes.arrayOf(datatypes.arrayOf('core/BigInteger')),
