@@ -39,14 +39,14 @@
 
 import xml.dom.minidom
 
-import Crypto.Hash.SHA256  # sha256 is not available in python 2.4 standard lib
+from hashlib import sha256
 
-from plonevotecryptolib.PublicKey import PublicKey, \
+from ..PublicKey import PublicKey, \
                                      PublicKey_serialize_structure_definition
 
-from plonevotecryptolib.EGCryptoSystem import EGCryptoSystem
-from plonevotecryptolib.PVCExceptions import InvalidPloneVoteCryptoFileError
-import plonevotecryptolib.utilities.serialize as serialize
+from ..EGCryptoSystem import EGCryptoSystem
+from ..PVCExceptions import InvalidPloneVoteCryptoFileError
+from .. import serialize
 # ============================================================================
 
 # ============================================================================
@@ -76,7 +76,7 @@ class ThresholdPublicKey(PublicKey):
     def get_fingerprint(self):
         # We override this PublicKey method to add partial public keys to the 
         # input of the hash function to create the fingerprint.
-        fingerprint = Crypto.Hash.SHA256.new()
+        fingerprint = sha256()
         fingerprint.update(hex(self.cryptosystem.get_nbits()))
         fingerprint.update(hex(self.cryptosystem.get_prime()))
         fingerprint.update(hex(self.cryptosystem.get_generator()))

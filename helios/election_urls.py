@@ -37,6 +37,8 @@ urlpatterns = patterns('',
     (r'^/trustees/(?P<trustee_uuid>[^/]+)/keygenerator$', trustee_keygenerator),
     (r'^/trustees/(?P<trustee_uuid>[^/]+)/check-sk$', trustee_check_sk),
     (r'^/trustees/(?P<trustee_uuid>[^/]+)/upload-pk$', trustee_upload_pk),
+    (r'^/trustees/(?P<trustee_uuid>[^/]+)/commitment$', trustee_commitment),
+    (r'^/trustees/(?P<trustee_uuid>[^/]+)/upload-commitment$', trustee_upload_commitment),
     (r'^/trustees/(?P<trustee_uuid>[^/]+)/decrypt-and-prove$', trustee_decrypt_and_prove),
     (r'^/trustees/(?P<trustee_uuid>[^/]+)/upload-decryption$', trustee_upload_decryption),
 

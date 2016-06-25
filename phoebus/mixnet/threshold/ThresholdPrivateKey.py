@@ -44,17 +44,17 @@ import xml.dom.minidom
 
 # secure version of python's random:
 from Crypto.Random.random import StrongRandom
-import Crypto.Hash.SHA256    # sha256 is not available in python 2.4 standard lib
+from hashlib import sha256
 
-from plonevotecryptolib.Threshold.ThresholdPublicKey import ThresholdPublicKey
-from plonevotecryptolib.Threshold.PartialDecryption import PartialDecryption, \
+from ThresholdPublicKey import ThresholdPublicKey
+from PartialDecryption import PartialDecryption, \
                                                     PartialDecryptionBlock, \
                                                     PartialDecryptionBlockProof
 
-from plonevotecryptolib.PVCExceptions import InvalidPloneVoteCryptoFileError, \
+from ..PVCExceptions import InvalidPloneVoteCryptoFileError, \
                                              IncompatibleCiphertextError
-import plonevotecryptolib.utilities.serialize as serialize
-from plonevotecryptolib.EGCryptoSystem import EGCryptoSystem
+from .. import serialize
+from ..EGCryptoSystem import EGCryptoSystem
 
 # ============================================================================
     

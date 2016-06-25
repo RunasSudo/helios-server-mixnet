@@ -905,6 +905,14 @@ class Election(HeliosModel):
   
   def has_helios_mixnet(self):
     return self.get_helios_mixnet() != None
+  
+  
+  def all_trustees_have_keys(self):
+    trustees = Trustee.get_by_election(self)
+    for trustee in trustees:
+      if trustee.public_key is None:
+        return False
+    return True
 
 class ElectionLog(models.Model):
   """

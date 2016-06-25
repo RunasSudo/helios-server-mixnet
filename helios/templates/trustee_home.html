@@ -15,7 +15,15 @@ You can <a href="{% url "helios.views.trustee_check_sk" election.uuid trustee.uu
 
 {% if election.trustee_threshold > 0 %}
 <p>
+{% if trustee.commitment %}
+You have successfully uploaded your commitment.
+{% else %}
+{% if election.all_trustees_have_keys %}
+<a href="{% url "helios.views.trustee_commitment" election.uuid trustee.uuid %}">upload your commitment</a>
+{% else %}
 Once all trustees have uploaded their public keys, you must return to this page to upload your commitment for threshold decryption purposes.
+{% endif %}
+{% endif %}
 </p>
 {% endif %}
 

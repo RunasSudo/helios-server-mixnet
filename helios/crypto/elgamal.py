@@ -536,3 +536,9 @@ def DLog_challenge_generator(commitment):
   string_to_hash = str(commitment)
   return int(hashlib.sha1(string_to_hash).hexdigest(),16)
 
+
+# Threshold encryption
+class TrusteeThresholdCommitment:
+  def __init__(self, public_coefficients=None, encrypted_partial_private_keys=None):
+    self.public_coefficients = public_coefficients
+    self.encrypted_partial_private_keys = encrypted_partial_private_keys

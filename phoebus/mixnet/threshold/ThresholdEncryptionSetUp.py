@@ -41,16 +41,15 @@ import math
 
 import Crypto.Hash.SHA256
 
-from plonevotecryptolib.Threshold.Polynomial import CoefficientsPolynomial
-from plonevotecryptolib.Threshold.ThresholdEncryptionCommitment import \
-                                                  ThresholdEncryptionCommitment
-from plonevotecryptolib.Threshold.ThresholdPublicKey import ThresholdPublicKey
-from plonevotecryptolib.Threshold.ThresholdPrivateKey import ThresholdPrivateKey
-from plonevotecryptolib.Threshold.ThresholdKeyPair import ThresholdKeyPair
+from Polynomial import CoefficientsPolynomial
+from ThresholdEncryptionCommitment import ThresholdEncryptionCommitment
+from ThresholdPublicKey import ThresholdPublicKey
+from ThresholdPrivateKey import ThresholdPrivateKey
+from ThresholdKeyPair import ThresholdKeyPair
 
-from plonevotecryptolib.PVCExceptions import *
+from ..PVCExceptions import *
 
-from plonevotecryptolib.utilities.BitStream import BitStream
+from ..BitStream import BitStream
 
 
 class ThresholdEncryptionSetUp:

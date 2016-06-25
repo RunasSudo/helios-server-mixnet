@@ -2,6 +2,8 @@
 Legacy datatypes for Phoebus stv voting platform(v3.0)
 """
 
+from __future__ import absolute_import # we need to import things from phoebus.mixnet
+
 from helios.datatypes import LDObject, arrayOf, DictObject, ListObject
 from helios.crypto import elgamal as crypto_elgamal
 from helios.workflows import homomorphic, mixnet
@@ -29,13 +31,25 @@ class CastVote(LegacyObject):
 
 
 class Trustee(LegacyObject):
-    FIELDS = ['uuid', 'public_key', 'public_key_hash', 'pok', 'decryption_factors', 'decryption_proofs', 'email']
+    FIELDS = ['uuid', 'public_key', 'public_key_hash', 'pok', 'decryption_factors', 'decryption_proofs', 'email', 'commitment']
 
     STRUCTURED_FIELDS = {
         'public_key' : 'legacy/EGPublicKey',
         'pok': 'legacy/DLogProof',
         'decryption_factors': arrayOf(arrayOf('core/BigInteger')),
-        'decryption_proofs' : arrayOf(arrayOf('legacy/EGZKProof'))}
+        'decryption_proofs' : arrayOf(arrayOf('legacy/EGZKProof')),
+        'commitment': 'phoebus/ThresholdEncryptionCommitment'
+    }
+
+class ThresholdEncryptionCommitment(LegacyObject):
+    WRAPPED_OBJ_CLASS = crypto_elgamal.TrusteeThresholdCommitment
+    
+    FIELDS = ['public_coefficients', 'encrypted_partial_private_keys']
+    
+    STRUCTURED_FIELDS = {
+        'public_coefficients': arrayOf('core/BigInteger'),
+        'encrypted_partial_private_keys': arrayOf('legacy/EGCiphertext')
+    }
 
 
 class Election(LegacyObject):
@@ -43,7 +57,7 @@ class Election(LegacyObject):
     FIELDS = ['uuid', 'questions', 'name', 'short_name', 'description',
               'voters_hash', 'openreg', 'frozen_at', 'public_key', 'cast_url',
               'use_voter_aliases', 'voting_starts_at', 'voting_ends_at',
-              'workflow_type']
+              'workflow_type', 'trustee_threshold']
 
     STRUCTURED_FIELDS = {
         'public_key': 'legacy/EGPublicKey',

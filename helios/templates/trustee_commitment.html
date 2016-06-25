@@ -19,7 +19,7 @@ function submit_result() {
   // do the post
   $.ajax({
       type: 'POST',
-      url: "./upload-shuffle",
+      url: "./upload-commitment",
       data: result,
       cache: false,
       processData: false,
@@ -41,39 +41,36 @@ function submit_result() {
 }
 
 </script>
-  <h2 class="title">Mixnet #{{mixnet_index|add:1}} &mdash; Shuffle Result for {{election.name}}</h2>
+  <h2 class="title">Trustee {{trustee.name}} &mdash; Upload commitment for {{election.name}}</h2>
 
 <p>
-    <b>Mixnet:</b> <tt>{{mixnet.name}}</tt>
+    <b>Trustee:</b> <tt>{{trustee.email}}</tt><br />
+    <b>Public Key Fingerprint:</b> <tt>{{trustee.public_key_hash}}</tt>
 </p>
 
     <p>
-      The encrypted tally for your election has been computed.<br />
-      Now it's time to compute and submit your shuffle.
+      The election administrator has enabled threshold decryption. In order to facilitate this, each trustee much upload a commitment to be used to generate the election public key.
     </p>
 
     <p>
       This process is performed in two steps.<br /><br />
-      <u>First</u>, you must shuffle the ballots and produce a shadow mix proof of shuffle. This is currently not possible in the browser, so you will need to use the <a href="https://github.com/RunasSudo/helios-server-mixnet/tree/master/standalone">standalone Python mixnet shuffler</a>, then return to this page.<br /><br />
-      <u>Second</u>, once your shuffe and proof have been computed, your browser will need to be "online" to submit them to the server.
+      <u>First</u>, you must generate a commitment. This is currently not possible in the browser, so you will need to use the <a href="https://github.com/RunasSudo/helios-server-mixnet/tree/master/standalone">standalone Python threshold commitment generator</a>, then return to this page.<br /><br />
+      <u>Second</u>, once your commitment has been generated, your browser will need to be "online" to submit them to the server.
     </p>
 
   <div id="waiting_submit_div">
-      Submitting and checking your shuffle and proofs...<br />
+      Submitting and checking your commitment...<br />
       <img src="/static/helios/loading.gif" />
   </div>
   
   <div id="step_two">
-      <h3>FIRST STEP: shuffle the ballots</h3>
-      <textarea cols="60" rows="5" wrap="soft">{{ orig }}</textarea>
+      <h3>FIRST STEP: generate a commitment</h3>
       
-      <h3>SECOND STEP: upload your shuffle and proof</h3>
+      <h3>SECOND STEP: upload your commitment</h3>
       <form action="javascript:submit_result();" enctype="multipart/form-data">
-          Your shuffle:
-          <input name="shuffle_file" type="file" /><br /><br />
-          Your proof:
-          <input name="proof_file" type="file" /><br /><br />
-          <input type="submit" value="Upload shuffle and proof to server" />
+          Your commitment:
+          <input name="commitment_file" type="file" /><br /><br />
+          <input type="submit" value="Upload commitment to server" />
       </form>
   </div>
   

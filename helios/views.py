@@ -1104,6 +1104,27 @@ def trustee_upload_decryption(request, election, trustee_uuid):
   else:
     return FAILURE
 
+@trustee_check
+def trustee_commitment(request, election, trustee):
+  return render_template(request, 'trustee_commitment', {'election': election, 'trustee': trustee})
+
+@election_view(frozen=False)
+def trustee_upload_commitment(request, election, trustee_uuid):
+  if 'commitment_file' not in request.FILES:
+    return HttpResponseBadRequest(request.FILES)
+  
+  trustees = Trustee.get_by_election(election)
+  trustee = Trustee.get_by_election_and_uuid(election, trustee_uuid)
+  
+  commitment_dict = json.load(request.FILES['commitment_file'])
+  
+  commitment = datatypes.LDObject.fromDict(commitment_dict, type_hint='phoebus/ThresholdEncryptionCommitment')
+  
+  trustee.commitment = commitment
+  trustee.save()
+  
+  return HttpResponse(content="OK!")
+
 @election_admin(frozen=True)
 def release_result(request, election):
   """
