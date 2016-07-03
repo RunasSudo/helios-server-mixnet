@@ -67,13 +67,14 @@ class PartialDecryptionBlockProof:
 					hashing a, b, g^{2P(j)} and block together. 
 	"""
 	
-	def __init__(self, a, b, t):
+	def __init__(self, c, a, b, t):
 		"""
 		Creates a new PartialDecryptionBlockProof.
 		
 		Arguments:
 			(See class attributes and note in the class documentation)
 		"""
+		self.c = c
 		self.a = a
 		self.b = b
 		self.t = t

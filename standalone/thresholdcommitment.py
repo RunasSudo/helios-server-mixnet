@@ -47,5 +47,9 @@ commitment = setup.generate_commitment()
 
 print(json.dumps({
 	"public_coefficients": [str(x) for x in commitment.public_coefficients],
-	"encrypted_partial_private_keys": [{"alpha": str(x.gamma[0]), "beta": str(x.delta[0])} for x in commitment.encrypted_partial_private_keys]
+	"encrypted_partial_private_keys": [
+		# The partial private key is too big for one single (a, b) pair
+		[{"alpha": str(x.gamma[i]), "beta": str(x.delta[i])} for i in xrange(0, x.get_length())]
+		for x in commitment.encrypted_partial_private_keys
+	]
 }))

@@ -593,6 +593,20 @@ class Election(HeliosModel):
 
     self.result_released_at = datetime.datetime.utcnow()
   
+  def get_threshold_combinator(self, q_num, a_num):
+    from phoebus.mixnet.Ciphertext import Ciphertext
+    from phoebus.mixnet.threshold.ThresholdDecryptionCombinator import ThresholdDecryptionCombinator
+    
+    tesu = self.get_threshold_setup()
+    pk = tesu.generate_public_key()
+    
+    ciphertext = Ciphertext(pk.cryptosystem.get_nbits(), pk.get_fingerprint())
+    ciphertext.append(self.encrypted_tally.tally[q_num][a_num].alpha, self.encrypted_tally.tally[q_num][a_num].beta)
+    
+    trustees = Trustee.get_by_election(self)
+    
+    return ThresholdDecryptionCombinator(pk, ciphertext, len(trustees), self.trustee_threshold)
+  
   def combine_decryptions(self):
     """
     combine all of the decryption results
@@ -600,12 +614,37 @@ class Election(HeliosModel):
     if not self.ready_for_decryption_combination():
         raise Exception("Not all trustees decryption factors ready")
 
-    # gather the decryption factors
-    trustees = Trustee.get_by_election(self)
-    decryption_factors = [t.decryption_factors for t in trustees]
-    self.result = self.workflow.decrypt_tally(self, decryption_factors)
-    self.append_log(ElectionLog.DECRYPTIONS_COMBINED)
-    self.save()
+    if self.trustee_threshold <= 0:
+      # gather the decryption factors
+      trustees = Trustee.get_by_election(self)
+      decryption_factors = [t.decryption_factors for t in trustees]
+      self.result = self.workflow.decrypt_tally(self, decryption_factors)
+      self.append_log(ElectionLog.DECRYPTIONS_COMBINED)
+      self.save()
+    else:
+      trustees = Trustee.get_by_election(self)
+      tally = self.encrypted_tally.tally
+      
+      tesu = self.get_threshold_setup()
+      pk = tesu.generate_public_key()
+      
+      result = []
+      
+      # combine the decryptions
+      for q_num in xrange(0, len(tally)):
+        result_q = []
+        for a_num in xrange(0, len(tally[q_num])):
+          combinator = self.get_threshold_combinator(q_num, a_num)
+          for trustee in xrange(0, len(trustees)):
+            combinator.add_partial_decryption(trustee, trustees[trustee].to_plone_partial_decryption(pk, q_num, a_num))
+          bitstream = combinator.decrypt_to_bitstream()
+          bitstream.seek(0)
+          result_q.append(bitstream.get_num(bitstream.get_length()))
+        result.append(result_q)
+      
+      self.result = result
+      self.append_log(ElectionLog.DECRYPTIONS_COMBINED)
+      self.save()
 
   def generate_voters_hash(self):
     """
@@ -670,6 +709,21 @@ class Election(HeliosModel):
     self.eligibility = [{'auth_system': auth_system} for auth_system in auth_systems]
     self.save()
 
+  def get_threshold_setup(self):
+    import phoebus.mixnet.EGCryptoSystem
+    import math
+    nbits = ((int(math.log(self.public_key.p, 2)) - 1) & ~255) + 256
+    cryptosystem = phoebus.mixnet.EGCryptoSystem.EGCryptoSystem.load(nbits, self.public_key.p, self.public_key.g)
+    
+    trustees = Trustee.get_by_election(self)
+    from phoebus.mixnet.threshold.ThresholdEncryptionSetUp import ThresholdEncryptionSetUp
+    tesu = ThresholdEncryptionSetUp(cryptosystem, len(trustees), self.trustee_threshold)
+    
+    for idx in xrange(0, len(trustees)):
+      tesu.add_trustee_commitment(idx, trustees[idx].commitment.to_plone(self))
+    
+    return tesu
+
   def freeze(self):
     """
     election is frozen when the voter registration, questions, and trustees are finalized
@@ -686,11 +740,27 @@ class Election(HeliosModel):
 
     # public key for trustees
     trustees = Trustee.get_by_election(self)
-    combined_pk = trustees[0].public_key
-    for t in trustees[1:]:
-      combined_pk = combined_pk * t.public_key
-
-    self.public_key = combined_pk
+    
+    if self.trustee_threshold <= 0:
+      # n-of-n threshold encryption
+      combined_pk = trustees[0].public_key
+      for t in trustees[1:]:
+        combined_pk = combined_pk * t.public_key
+      
+      self.public_key = combined_pk
+    else:
+      # k-of-n threshold encryption
+      tesu = self.get_threshold_setup()
+      
+      phoebus_pk = tesu.generate_public_key()
+      import helios.crypto.elgamal
+      helios_pk = helios.crypto.elgamal.PublicKey()
+      helios_pk.y = phoebus_pk._key
+      helios_pk.p = phoebus_pk.public_key.p
+      helios_pk.g = phoebus_pk.public_key.g
+      helios_pk.q = phoebus_pk.public_key.q
+      
+      self.public_key = helios_pk
 
     # log it
     self.append_log(ElectionLog.FROZEN)
@@ -1433,9 +1503,43 @@ class Trustee(HeliosModel):
   def datatype(self):
     return self.election.datatype.replace('Election', 'Trustee')
 
+  def to_plone_partial_decryption(self, pk, q_num, a_num):
+    from phoebus.mixnet.threshold.PartialDecryption import PartialDecryption, PartialDecryptionBlock, PartialDecryptionBlockProof
+    
+    pd = PartialDecryption(pk.cryptosystem.get_nbits())
+    pdbp = PartialDecryptionBlockProof(
+      self.decryption_proofs[q_num][a_num].challenge,
+      self.decryption_proofs[q_num][a_num].commitment['A'],
+      self.decryption_proofs[q_num][a_num].commitment['B'],
+      self.decryption_proofs[q_num][a_num].response
+    )
+    pdb = PartialDecryptionBlock(self.decryption_factors[q_num][a_num], pdbp)
+    pd.add_partial_decryption_block(pdb)
+    
+    return pd
+
   def verify_decryption_proofs(self):
     """
     verify that the decryption proofs match the tally for the election
     """
-    return self.election.workflow.verify_encryption_proof(self.election, self)
+    if self.election.trustee_threshold <= 0:
+      return self.election.workflow.verify_encryption_proof(self.election, self)
+    else:
+      # PloneVote uses a completely different proof
+      index = list(Trustee.get_by_election(self.election)).index(self)
+      
+      tesu = self.election.get_threshold_setup()
+      pk = tesu.generate_public_key()
+      
+      tally = self.election.encrypted_tally.tally
+      for q_num in xrange(0, len(tally)):
+        for a_num in xrange(0, len(tally[q_num])):
+          combinator = self.election.get_threshold_combinator(q_num, a_num)
+          
+          try:
+            combinator.add_partial_decryption(index, self.to_plone_partial_decryption(pk, q_num, a_num)) # this verifies the decryption
+          except:
+            return False
+      
+      return True
 

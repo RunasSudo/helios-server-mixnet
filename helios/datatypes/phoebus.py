@@ -48,7 +48,7 @@ class ThresholdEncryptionCommitment(LegacyObject):
     
     STRUCTURED_FIELDS = {
         'public_coefficients': arrayOf('core/BigInteger'),
-        'encrypted_partial_private_keys': arrayOf('legacy/EGCiphertext')
+        'encrypted_partial_private_keys': arrayOf(arrayOf('legacy/EGCiphertext'))
     }
 
 

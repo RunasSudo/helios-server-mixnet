@@ -220,12 +220,12 @@ class ThresholdPrivateKey:
             # (We must use g^{2*P(j)} and not g^{P(j)}, because the first is 
             # considered as the partial public key of trustee j and the value 
             # of the later is unavailable at decryption combination time).
-            sha256 =  Crypto.Hash.SHA256.new()
-            sha256.update(hex(a))
-            sha256.update(hex(b))
-            sha256.update(hex(pow(generator, 2*key, prime)))
-            sha256.update(hex(value))
-            c = int(sha256.hexdigest(),16)
+            fingerprint = sha256()
+            fingerprint.update(hex(a))
+            fingerprint.update(hex(b))
+            fingerprint.update(hex(pow(generator, 2*key, prime)))
+            fingerprint.update(hex(value))
+            c = int(fingerprint.hexdigest(),16)
             
             # t = s + 2P(j)*c mod p-1 (P(j): trustee j's threshold private key)
             # (p - 1 since it is in the exponent and we are already adding the 2
@@ -233,7 +233,7 @@ class ThresholdPrivateKey:
             t = (s + 2*key*c) % (prime - 1)
             
             # Generate the PartialDecryptionBlockProof as (a, b, t)
-            proof = PartialDecryptionBlockProof(a, b, t)
+            proof = PartialDecryptionBlockProof(c, a, b, t)
             
             # Generate the block as (value, proof) and add it to the partial 
             # decryption object.

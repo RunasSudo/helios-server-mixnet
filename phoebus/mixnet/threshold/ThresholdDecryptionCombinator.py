@@ -40,10 +40,10 @@
 # Non crypto secure random, used only for shuffling lists of partial decryptions
 import random
 
-import Crypto.Hash.SHA256	# sha256 is not available in python 2.4 standard lib
+from hashlib import sha256
 
-from plonevotecryptolib.PVCExceptions import ElectionSecurityError
-from plonevotecryptolib.utilities.BitStream import BitStream
+from ..PVCExceptions import ElectionSecurityError
+from ..BitStream import BitStream
 
 __all__ = ["ThresholdDecryptionCombinator", 
 		   "InsuficientPartialDecryptionsError"]
@@ -287,12 +287,12 @@ class ThresholdDecryptionCombinator:
 			t = pd_block.proof.t
 			
 			# Re-generate challenge c as SHA256(a, b, g^{2P(j)}, block)
-			sha256 =  Crypto.Hash.SHA256.new()
-			sha256.update(hex(a))
-			sha256.update(hex(b))
-			sha256.update(hex(ppub_key))
-			sha256.update(hex(pd_block.value))
-			c = int(sha256.hexdigest(),16)
+			fingerprint =  sha256()
+			fingerprint.update(hex(a))
+			fingerprint.update(hex(b))
+			fingerprint.update(hex(ppub_key))
+			fingerprint.update(hex(pd_block.value))
+			c = int(fingerprint.hexdigest(),16)
 			
 			# verify the proof, in two parts:
 			proof_valid = True
