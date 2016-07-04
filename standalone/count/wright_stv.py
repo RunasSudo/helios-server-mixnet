@@ -138,9 +138,6 @@ def countVotes(ballots, candidates, numSeats, fast):
 					multiplier = (candidate.ctvv - quota) / candidate.ctvv
 					print("---- Transferring surplus from {} at value {:.2f}".format(candidate.name, float(multiplier)))
 					
-					if args.verbose:
-						candidate.ballots.sort(key=lambda k: k.gamma)
-					
 					for ballot in candidate.ballots:
 						transferTo = surplusTransfer(ballot.preferences, candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
