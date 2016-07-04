@@ -113,6 +113,9 @@ MIDDLEWARE_CLASSES = (
     'djangosecure.middleware.SecurityMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
+    # allow cross-origin requests
+    'corsheaders.middleware.CorsMiddleware',
+
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware'
@@ -135,6 +138,7 @@ INSTALLED_APPS = (
     ## needed for queues
     'djcelery',
     'kombu.transport.django',
+    'corsheaders', # allow cross-origin requests
     ## in Django 1.7 we now use built-in migrations, no more south
     ## 'south',
     ## HELIOS stuff
@@ -142,6 +146,14 @@ INSTALLED_APPS = (
     'helios',
     'server_ui',
 )
+
+##
+## CORS
+##
+
+CORS_ORIGIN_ALLOW_ALL = True
+# only allow base election info page
+CORS_URLS_REGEX = r'^/helios/elections/[a-z0-9-]*$'
 
 ##
 ## HELIOS
