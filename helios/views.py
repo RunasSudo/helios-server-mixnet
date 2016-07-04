@@ -471,7 +471,7 @@ def trustee_login(request, election_short_name, trustee_email, trustee_secret):
 def trustee_send_url(request, election, trustee_uuid):
   trustee = Trustee.get_by_election_and_uuid(election, trustee_uuid)
 
-  url = settings.SECURE_URL_HOST + reverse(trustee_login, args=[election.short_name, trustee.email, trustee.secret])
+  url = trustee.admin_url()
 
   body = """
 

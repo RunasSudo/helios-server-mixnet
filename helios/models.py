@@ -1546,4 +1546,11 @@ class Trustee(HeliosModel):
             return False
       
       return True
+  
+  
+  @property
+  def admin_url(self):
+    from django.core.urlresolvers import reverse
+    from helios import views
+    return settings.SECURE_URL_HOST + reverse(views.trustee_login, args=[self.election.short_name, self.email, self.secret])
 

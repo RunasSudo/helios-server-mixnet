@@ -44,6 +44,7 @@
 ({{t.email}})
 {% if not election.frozen_at %}[<a onclick="return confirm('Are you sure you want to remove this Trustee?');" href="{% url "helios.views.delete_trustee" election.uuid %}?uuid={{t.uuid}}">x</a>]{% endif %}
 [<a onclick="return confirm('Are you sure you want to send this trustee his/her admin URL?');" href="{% url "helios.views.trustee_send_url" election.uuid t.uuid %}">send login</a>]
+[<a href="{{ t.admin_url }}">admin URL</a>]
 {% endif %}
 {% endif %}
 </h5>
