@@ -25,6 +25,12 @@ from mixnet.PrivateKey import PrivateKey
 from mixnet.PublicKey import PublicKey
 from mixnet.ShufflingProof import ShufflingProof
 
+from mixnet.threshold.PartialDecryption import PartialDecryption, PartialDecryptionBlock, PartialDecryptionBlockProof
+from mixnet.threshold.ThresholdDecryptionCombinator import ThresholdDecryptionCombinator
+from mixnet.threshold.ThresholdEncryptionCommitment import ThresholdEncryptionCommitment
+from mixnet.threshold.ThresholdEncryptionSetUp import ThresholdEncryptionSetUp
+from mixnet.threshold.ThresholdPublicKey import ThresholdPublicKey
+
 import hashlib, itertools, json, math, sys, urllib2
 
 electionUrl = sys.argv[1].rstrip("/")
@@ -72,6 +78,7 @@ with statusCheck("Downloading election data"):
 	
 	# Trustees
 	trustees = json.load(urllib2.urlopen(electionUrl + "/trustees"))
+	trusteeThreshold = int(election['trustee_threshold'])
 
 # Verify mixes
 for i in xrange(0, numMixnets):
@@ -108,49 +115,107 @@ for i in xrange(0, numMixnets):
 				raise VerificationException("Shuffle failed to prove")
 
 # Verify decryptions
-for q in xrange(0, numQuestions):
-	ballots = mixnets[0][0][q]["answers"]
-	for i in xrange(0, len(ballots)):
-		print("Verifying decryptions for question " + str(q) + " ballot " + str(i))
-		ballot = ballots[i]
-		result = long(results[q][i])
-		decryption_factor_combination = 1L
+if trusteeThreshold <= 0:
+	for q in xrange(0, numQuestions):
+		ballots = mixnets[0][0][q]["answers"]
+		for i in xrange(0, len(ballots)):
+			print("Verifying decryptions for question " + str(q) + " ballot " + str(i))
+			ballot = ballots[i]
+			result = long(results[q][i])
+			decryption_factor_combination = 1L
+			
+			P = cryptosystem.get_prime()
+			
+			for j in xrange(0, len(trustees)):
+				with statusCheck("Verifying decryption by trustee " + str(j)):
+					factor = long(trustees[j]["decryption_factors"][q][i])
+					proof = trustees[j]["decryption_proofs"][q][i]
+					
+					# Check the challenge
+					C = long(proof["challenge"])
+					expected_challenge = int(hashlib.sha1(proof["commitment"]["A"] + "," + proof["commitment"]["B"]).hexdigest(), 16)
+					if C != expected_challenge:
+						raise VerificationException("Challenge is wrong")
+					
+					# Do the maths
+					T = long(proof["response"])
+					
+					GT = pow(cryptosystem.get_generator(), T, P)
+					AYC = (long(proof["commitment"]["A"]) * pow(long(trustees[j]["public_key"]["y"]), C, P)) % P
+					if GT != AYC:
+						raise VerificationException("g^t != Ay^c (mod p)")
+					
+					AT = pow(long(ballot["choice"]["alpha"]), T, P)
+					BFC = (long(proof["commitment"]["B"]) * pow(factor, C, P)) % P
+					
+					if AT != BFC:
+						raise VerificationException("alpha^t != B(factor)^c (mod p)")
+					
+					decryption_factor_combination *= factor
+			
+			# Check the claimed decryption
+			decryption_factor_combination *= result
+			
+			if (decryption_factor_combination % P) != (long(ballot["choice"]["beta"]) % P):
+				print("FAIL")
+				raise VerificationException("Claimed plaintext doesn't match decryption factors")
+else:
+	# We need a ThresholdPublicKey
+	tesu = ThresholdEncryptionSetUp(cryptosystem, len(trustees), trusteeThreshold)
+	for trustee in xrange(0, len(trustees)):
+		commitment = trustees[trustee]['commitment']
 		
-		P = cryptosystem.get_prime()
+		def to_ciphertext(idx):
+			ciphertext = Ciphertext(nbits, trustees[idx]['public_key_hash'])
+			
+			for i in xrange(0, len(commitment['encrypted_partial_private_keys'][idx])):
+				ciphertext.append(long(commitment['encrypted_partial_private_keys'][idx][i]['alpha']), long(commitment['encrypted_partial_private_keys'][idx][i]['beta']))
+			
+			return ciphertext
 		
-		for j in xrange(0, len(trustees)):
-			with statusCheck("Verifying decryption by trustee " + str(j)):
-				factor = long(trustees[j]["decryption_factors"][q][i])
-				proof = trustees[j]["decryption_proofs"][q][i]
-				
-				# Check the challenge
-				C = long(proof["challenge"])
-				expected_challenge = int(hashlib.sha1(proof["commitment"]["A"] + "," + proof["commitment"]["B"]).hexdigest(), 16)
-				if C != expected_challenge:
-					raise VerificationException("Challenge is wrong")
-				
-				# Do the maths
-				T = long(proof["response"])
-				
-				GT = pow(cryptosystem.get_generator(), T, P)
-				AYC = (long(proof["commitment"]["A"]) * pow(long(trustees[j]["public_key"]["y"]), C, P)) % P
-				if GT != AYC:
-					raise VerificationException("g^t != Ay^c (mod p)")
-				
-				AT = pow(long(ballot["choice"]["alpha"]), T, P)
-				BFC = (long(proof["commitment"]["B"]) * pow(factor, C, P)) % P
-				
-				if AT != BFC:
-					raise VerificationException("alpha^t != B(factor)^c (mod p)")
-				
-				decryption_factor_combination *= factor
-		
-		# Check the claimed decryption
-		decryption_factor_combination *= result
-		
-		if (decryption_factor_combination % P) != (long(ballot["choice"]["beta"]) % P):
-			print("FAIL")
-			raise VerificationException("Claimed plaintext doesn't match decryption factors")
+		tesu.add_trustee_commitment(trustee, ThresholdEncryptionCommitment(
+			cryptosystem, len(trustees), trusteeThreshold,
+			[long(x) for x in commitment['public_coefficients']],
+			[to_ciphertext(x) for x in xrange(0, len(commitment['encrypted_partial_private_keys']))]
+		))
+	tpk = tesu.generate_public_key()
+	
+	for q in xrange(0, numQuestions):
+		ballots = mixnets[0][0][q]["answers"]
+		for i in xrange(0, len(ballots)):
+			print("Verifying decryptions for question " + str(q) + " ballot " + str(i))
+			ballot = ballots[i]
+			result = long(results[q][i])
+			
+			ciphertext = Ciphertext(cryptosystem.get_nbits(), tpk.get_fingerprint())
+			ciphertext.append(long(ballot["choice"]["alpha"]), long(ballot["choice"]["beta"]))
+			combinator = ThresholdDecryptionCombinator(tpk, ciphertext, len(trustees), trusteeThreshold)
+			
+			for j in xrange(0, len(trustees)):
+				with statusCheck("Verifying decryption by trustee " + str(j)):
+					factor = long(trustees[j]["decryption_factors"][q][i])
+					proof = trustees[j]["decryption_proofs"][q][i]
+					
+					pd = PartialDecryption(cryptosystem.get_nbits())
+					pdbp = PartialDecryptionBlockProof(
+						long(proof['challenge']),
+						long(proof['commitment']['A']),
+						long(proof['commitment']['B']),
+						long(proof['response'])
+					)
+					pdb = PartialDecryptionBlock(factor, pdbp)
+					pd.add_partial_decryption_block(pdb)
+					
+					try:
+						combinator.add_partial_decryption(j, pd) # this verifies the decryption
+					except:
+						raise VerificationException("Partial decryption doesn't verify")
+			
+			bitstream = combinator.decrypt_to_bitstream()
+			bitstream.seek(0)
+			if bitstream.get_num(bitstream.get_length()) != result:
+				print("FAIL")
+				raise VerificationException("Claimed plaintext doesn't match decryption factors")
 
 print("The election has passed validation. The results are:")
 print(results)
