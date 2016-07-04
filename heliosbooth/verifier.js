@@ -23,7 +23,7 @@ function verify_ballot(election_raw_json, encrypted_vote_json, status_cb) {
       // display the ballot as it is claimed to be
       status_cb("Ballot Contents:");
       _(election.questions).each(function(q, qnum) {
-          if (q.tally_type == "homomorphic") {
+          if (q.choice_type == "approval") {
             var answer_pretty_list = _(encrypted_vote.encrypted_answers[qnum].answer).map(function(aindex, anum) {
                 return q.answers[aindex];
             });

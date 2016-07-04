@@ -446,7 +446,7 @@ BALLOT.pretty_choices = function(election, ballot) {
     // process the answers
     var choices = _(questions).map(function(q, q_num) {
         var q_answers = answers[q_num];
-        if (q.tally_type == "stv") {
+        if (q.choice_type == "stv") {
             q_answers = answers[q_num][0];
         }
 
@@ -512,7 +512,7 @@ HELIOS.EncryptedAnswer = Class.extend({
     // CHANGE 2008-08-06: answer is now an *array* of answers, not just a single integer
     this.answer = answer;
 
-    if (question.tally_type == "stv") {
+    if (question.choice_type == "stv") {
         answer[0] = STV.to_relative_answers(answer[0], question.answers.length);
     }
 
@@ -527,7 +527,7 @@ HELIOS.EncryptedAnswer = Class.extend({
   },
   
   doEncryption: function(question, answer, pk, randomness, progress) {
-    var stv = question.tally_type == "stv" ? true : false;
+    var stv = question.choice_type == "stv" ? true : false;
     var choices = [];
     var individual_proofs = [];
     var overall_proof = null;

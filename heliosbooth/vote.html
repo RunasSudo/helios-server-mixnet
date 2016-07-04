@@ -226,7 +226,7 @@ BOOTH.launch_async_encryption_answer = function(question_num) {
 
 // check if the current question is ok
 BOOTH.validate_question = function(question_num) {
-  if (BOOTH.election.questions[question_num].tally_type == "stv") {
+  if (BOOTH.election.questions[question_num].choice_type == "stv") {
     var answer = BOOTH.ballot.answers[question_num];
     var question = BOOTH.election.questions[question_num];
 
@@ -279,7 +279,7 @@ BOOTH.validate_question = function(question_num) {
 };
 
 BOOTH.validate_and_confirm = function(question_num) {
-  if (BOOTH.election.questions[question_num].tally_type == "stv") {
+  if (BOOTH.election.questions[question_num].choice_type == "stv") {
       BOOTH.stv_updated(question_num, $("#stv_answer").val());
   }
 
@@ -289,7 +289,7 @@ BOOTH.validate_and_confirm = function(question_num) {
 };
 
 BOOTH.next = function(question_num) {
-    if (BOOTH.election.questions[question_num].tally_type == "stv") {
+    if (BOOTH.election.questions[question_num].choice_type == "stv") {
         BOOTH.stv_updated(question_num, $("#stv_answer").val());
     }
 
@@ -336,7 +336,7 @@ BOOTH.show_question = function(question_num) {
 
   BOOTH.show_progress('1');
   
-  if (BOOTH.election.workflow_type == "mixnet") {
+  if (BOOTH.election.questions[question_num]['choice_type'] == "stv") {
     BOOTH.show($('#question_stv_div')).processTemplate({'question_num' : question_num,
                         'last_question_num' : BOOTH.election.questions.length - 1,
                         'question' : BOOTH.election.questions[question_num], 'show_reviewall' : BOOTH.all_questions_seen,

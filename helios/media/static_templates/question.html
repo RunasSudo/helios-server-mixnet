@@ -18,13 +18,6 @@
 <div id="q_edit_{$T.question$index}" style="display:none;">
 <form id="question_edit_{$T.question$index}_form" onsubmit="question_update({$T.question$index}, this); return false;" action="#">
 <p>
-<!--
-  Type of Question:
-  <select name="choice_type">
-    <option selected>approval</option>
-  </select>
--->
-<input type="hidden" name="choice_type" value="stv" />
 <b>{$T.question$index + 1}.</b> &nbsp;&nbsp;&nbsp;Select between &nbsp;&nbsp;
 <input name="min" type="number" style="display: inline; width: 4em;" value="0">
 
@@ -35,6 +28,13 @@
 &nbsp;&nbsp;
 answers.
 
+&nbsp;&nbsp;
+&nbsp;&nbsp;
+Question Type:&nbsp;
+<select name="choice_type">
+  <option selected>stv</option>
+  <option>approval</option>
+</select>
 &nbsp;&nbsp;
 &nbsp;&nbsp;
 Result Type:&nbsp;
@@ -66,13 +66,6 @@ no questions yet
 <h4>Add a Question:</h4>
 <form id="question_form" onsubmit="question_add(this); return false;" action="#">
 <p>
-<!--
-  Type of Question:
-  <select name="choice_type">
-    <option selected>approval</option>
-  </select>
--->
-<input type="hidden" name="choice_type" value="stv" />
 &nbsp;&nbsp;&nbsp;Select between &nbsp;&nbsp;
 <input name="min" type="number" style="display: inline; width: 4em;" value="0">
 
@@ -83,6 +76,13 @@ no questions yet
 &nbsp;&nbsp;
 answers.
 
+&nbsp;&nbsp;
+&nbsp;&nbsp;
+Question Type:&nbsp;
+<select name="choice_type">
+  <option selected>stv</option>
+  <option>approval</option>
+</select>
 &nbsp;&nbsp;
 &nbsp;&nbsp;
 Result Type:&nbsp;

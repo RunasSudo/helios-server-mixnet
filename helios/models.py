@@ -307,15 +307,18 @@ class Election(HeliosModel):
       }
 
   def result_choices(self, question=0):
-    from phoebus import phoebus
-    print self.questions
-    nr_cands = len(self.questions[question]['answers'])
+    if self.questions[question]['choice_type'] == 'stv':
+      from phoebus import phoebus
+      print self.questions
+      nr_cands = len(self.questions[question]['answers'])
 
-    print self.result
-    results = []
-    for result in self.result[question]:
-      results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result, nr_cands), nr_cands))
-    return results
+      print self.result
+      results = []
+      for result in self.result[question]:
+        results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result, nr_cands), nr_cands))
+      return results
+    else:
+      return [[x - 1] for x in self.result[question]]
 
   @property
   def pretty_type(self):
