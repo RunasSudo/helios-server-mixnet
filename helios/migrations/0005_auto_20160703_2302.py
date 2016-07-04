@@ -12,6 +12,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterModelOptions(
+            name='trustee',
+            options={'ordering': ['id']},
+        ),
         migrations.AddField(
             model_name='election',
             name='trustee_threshold',

@@ -4,7 +4,9 @@
 <script language="javascript">
 
 $(document).ready(function() {
+{% if election.trustee_threshold <= 0 %}
     $('#result_div').hide();
+{% endif %}
     $('#waiting_div').hide();
     $('#waiting_submit_div').hide();
     $('#done_div').hide();
@@ -169,12 +171,12 @@ function reset() {
       <p id="tally_section">
           <button onclick="do_tally();">Generate partial decryption</button>
       </p>
-{% endif %}
 
       <p id="skip_to_second_step_instructions">
         <a href="javascript:skip_to_second_step();">skip to the second step</a><br />
         (you need to have already computed your decryption factors.)
       </p>
+{% endif %}
   </div>
   
   <div id="waiting_div">
@@ -200,8 +202,10 @@ function reset() {
           <input type="submit" value="Upload decryption factors to server" />
       </form>
       <br />
+{% if election.trustee_threshold <= 0 %}
       <a href="javascript:reset()">reset and restart decryption process</a>
       <br />
+{% endif %}
   </div>
   
   <div id="done_div">

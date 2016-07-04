@@ -710,10 +710,13 @@ class Election(HeliosModel):
     self.save()
 
   def get_threshold_setup(self):
+    # The election public key may not be ready yet
+    from helios.views import ELGAMAL_PARAMS
+    
     import phoebus.mixnet.EGCryptoSystem
     import math
-    nbits = ((int(math.log(self.public_key.p, 2)) - 1) & ~255) + 256
-    cryptosystem = phoebus.mixnet.EGCryptoSystem.EGCryptoSystem.load(nbits, self.public_key.p, self.public_key.g)
+    nbits = ((int(math.log(ELGAMAL_PARAMS.p, 2)) - 1) & ~255) + 256
+    cryptosystem = phoebus.mixnet.EGCryptoSystem.EGCryptoSystem.load(nbits, ELGAMAL_PARAMS.p, ELGAMAL_PARAMS.g)
     
     trustees = Trustee.get_by_election(self)
     from phoebus.mixnet.threshold.ThresholdEncryptionSetUp import ThresholdEncryptionSetUp
@@ -756,9 +759,9 @@ class Election(HeliosModel):
       import helios.crypto.elgamal
       helios_pk = helios.crypto.elgamal.PublicKey()
       helios_pk.y = phoebus_pk._key
-      helios_pk.p = phoebus_pk.public_key.p
-      helios_pk.g = phoebus_pk.public_key.g
-      helios_pk.q = phoebus_pk.public_key.q
+      helios_pk.p = phoebus_pk.cryptosystem.get_prime()
+      helios_pk.g = phoebus_pk.cryptosystem.get_generator()
+      helios_pk.q = (helios_pk.p - 1) / 2
       
       self.public_key = helios_pk
 
@@ -1468,6 +1471,7 @@ class Trustee(HeliosModel):
 
   class Meta:
     unique_together = (('election', 'email'))
+    ordering = ['id']
     
   def save(self, *args, **kwargs):
     """
@@ -1538,7 +1542,7 @@ class Trustee(HeliosModel):
           
           try:
             combinator.add_partial_decryption(index, self.to_plone_partial_decryption(pk, q_num, a_num)) # this verifies the decryption
-          except:
+          except Exception as e:
             return False
       
       return True

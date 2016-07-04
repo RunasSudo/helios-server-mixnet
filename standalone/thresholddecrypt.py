@@ -73,16 +73,21 @@ for trustee in xrange(0, len(trustees)):
 
 threshold_key = setup.generate_private_key(number, secret)
 
-partial_decryptions = [[]] * len(election["questions"])
+partial_decryptions = []
 
 # Perform partial decryptions
 for question in ballots:
+	partial_decryption_q = []
+	
 	for ballot in question["answers"]:
 		ciphertext = Ciphertext(nbits, pkf)
 		ciphertext.append(long(ballot["choice"]["alpha"]), long(ballot["choice"]["beta"]))
 		
 		partial_decryption = threshold_key.generate_partial_decryption(ciphertext)
-		partial_decryptions[question["question_num"]].append(partial_decryption)
+		
+		partial_decryption_q.append(partial_decryption)
+	
+	partial_decryptions.append(partial_decryption_q)
 
 # Convert to Helios format
 decryption_factors = [[str(decryption[0].value) for decryption in question] for question in partial_decryptions]
