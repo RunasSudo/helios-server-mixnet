@@ -536,3 +536,37 @@ def DLog_challenge_generator(commitment):
   string_to_hash = str(commitment)
   return int(hashlib.sha1(string_to_hash).hexdigest(),16)
 
+
+# Threshold encryption
+class TrusteeThresholdCommitment:
+  def __init__(self, public_coefficients=None, encrypted_partial_private_keys=None):
+    self.public_coefficients = public_coefficients
+    self.encrypted_partial_private_keys = encrypted_partial_private_keys
+  
+  def to_plone(self, election):
+    from helios.models import Trustee
+    trustees = Trustee.get_by_election(election)
+    
+    # The election public key may not be ready yet
+    from helios.views import ELGAMAL_PARAMS
+    import phoebus.mixnet.EGCryptoSystem
+    import phoebus.mixnet.Ciphertext
+    import phoebus.mixnet.threshold.ThresholdEncryptionCommitment
+    import math
+    
+    nbits = ((int(math.log(ELGAMAL_PARAMS.p, 2)) - 1) & ~255) + 256
+    cryptosystem = phoebus.mixnet.EGCryptoSystem.EGCryptoSystem.load(nbits, ELGAMAL_PARAMS.p, ELGAMAL_PARAMS.g)
+    
+    def to_ciphertext(idx):
+      ciphertext = phoebus.mixnet.Ciphertext.Ciphertext(nbits, trustees[idx].public_key_hash)
+      
+      for i in xrange(0, len(self.encrypted_partial_private_keys[idx])):
+        ciphertext.append(self.encrypted_partial_private_keys[idx][i].alpha, self.encrypted_partial_private_keys[idx][i].beta)
+      
+      return ciphertext
+    
+    return phoebus.mixnet.threshold.ThresholdEncryptionCommitment.ThresholdEncryptionCommitment(
+      cryptosystem, len(trustees), election.trustee_threshold,
+      self.public_coefficients,
+      [to_ciphertext(x) for x in xrange(0, len(self.encrypted_partial_private_keys))]
+    )

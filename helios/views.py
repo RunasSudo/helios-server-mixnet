@@ -411,8 +411,15 @@ def list_trustees_view(request, election):
   trustees = Trustee.get_by_election(election)
   user = get_user(request)
   admin_p = security.user_can_admin_election(user, election)
-
+  
   return render_template(request, 'list_trustees', {'election': election, 'trustees': trustees, 'admin_p':admin_p})
+
+@election_admin(frozen=False)
+def edit_trustee_threshold(request, election):
+  check_csrf(request)
+  election.trustee_threshold = int(request.POST['trustee_threshold'])
+  election.save()
+  return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(list_trustees_view, args=[election.uuid]))
 
 @election_admin(frozen=False)
 def new_trustee(request, election):
@@ -1097,6 +1104,27 @@ def trustee_upload_decryption(request, election, trustee_uuid):
   else:
     return FAILURE
 
+@trustee_check
+def trustee_commitment(request, election, trustee):
+  return render_template(request, 'trustee_commitment', {'election': election, 'trustee': trustee})
+
+@election_view(frozen=False)
+def trustee_upload_commitment(request, election, trustee_uuid):
+  if 'commitment_file' not in request.FILES:
+    return HttpResponseBadRequest(request.FILES)
+  
+  trustees = Trustee.get_by_election(election)
+  trustee = Trustee.get_by_election_and_uuid(election, trustee_uuid)
+  
+  commitment_dict = json.load(request.FILES['commitment_file'])
+  
+  commitment = datatypes.LDObject.fromDict(commitment_dict, type_hint='phoebus/ThresholdEncryptionCommitment')
+  
+  trustee.commitment = commitment
+  trustee.save()
+  
+  return HttpResponse(content="OK!")
+
 @election_admin(frozen=True)
 def release_result(request, election):
   """
@@ -1475,6 +1503,7 @@ def new_mixnet(request, election):
   if request.method == "GET":
     return render_template(request, 'new_mixnet', {'election' : election})
   else:
+    check_csrf(request)
     params = {'election': election, 'mix_order': election.mixnets.count(),
               'name': request.POST['name'],
               'email': request.POST['email'],
