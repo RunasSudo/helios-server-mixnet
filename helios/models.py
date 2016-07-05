@@ -173,6 +173,12 @@ class ElectionMixnet(HeliosModel):
         self.status = 'error'
         self.mix_error = traceback.format_exc()
         self.save()
+  
+  @property
+  def admin_url(self):
+    from django.core.urlresolvers import reverse
+    from helios import views
+    return settings.SECURE_URL_HOST + reverse(views.mixnet_login, args=[self.election.short_name, list(self.election.mixnets.filter()).index(self), self.secret])
 
 
 class Election(HeliosModel):

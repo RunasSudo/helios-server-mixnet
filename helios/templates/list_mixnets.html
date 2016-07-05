@@ -43,6 +43,7 @@
 ({{t.email}})
 {% if not election.frozen_at %}[<a onclick="return confirm('Are you sure you want to remove this mixnet?');" href="{% url "helios.views.delete_mixnet" election.uuid %}?index={{forloop.counter|add:-1}}">x</a>]{% endif %}
 [<a onclick="return confirm('Are you sure you want to send this mixnet its admin URL?');" href="{% url "helios.views.mixnet_send_url" election.uuid forloop.counter|add:-1 %}">send login</a>]
+[<a href="{{ t.admin_url }}">admin URL</a>]
 {% endif %}
 {% endif %}
 </h5>

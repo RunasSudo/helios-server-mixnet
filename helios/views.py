@@ -1535,7 +1535,7 @@ def delete_mixnet(request, election):
 def mixnet_send_url(request, election, mixnet_index):
   mixnet = election.mixnets.filter()[int(mixnet_index)]
 
-  url = settings.SECURE_URL_HOST + reverse(mixnet_login, args=[election.short_name, mixnet_index, mixnet.secret])
+  url = mixnet.admin_url()
 
   body = """
 
