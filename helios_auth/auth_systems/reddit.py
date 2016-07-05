@@ -10,6 +10,7 @@ from django.conf import settings
 import httplib2,json
 
 import sys, os, cgi, urllib, urllib2, re, random
+import json, os.path
 
 from oauth2client.client import OAuth2WebServerFlow
 
@@ -81,12 +82,37 @@ def send_message(user_id, name, user_info, subject, body):
   send email to reddit users. user_id is the username for reddit.
   """
   pass
-  
-def check_constraint(constraint, user_info):
+
+
+#
+# eligibility
+#
+
+ELECTORATES = {}
+if os.path.exists('reddit-electorates.json'):
+	with open('reddit-electorates.json', 'r') as f:
+		ELECTORATES = json.load(f)
+
+def check_constraint(constraint, user):
+  if constraint['electorate'] in ELECTORATES:
+    return user.user_id.lower() in ELECTORATES[constraint['electorate']].lower().split(',')
+  return False
+
+def generate_constraint(category_id, user):
   """
-  for eligibility
+  generate the proper basic data structure to express a constraint
+  based on the category string
   """
-  pass
+  return {'electorate': category_id}
+
+def list_categories(user):
+  return [{'id': x, 'name': x} for x in ELECTORATES]
+
+def eligibility_category_id(constraint):
+  return constraint['electorate']
+
+def pretty_eligibility(constraint):
+  return "Registered voters in %s" % constraint['electorate']
 
 
 #
