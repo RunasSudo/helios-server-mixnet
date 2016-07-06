@@ -672,6 +672,10 @@ BOOTH.show_receipt = function() {
     UTILS.open_window_with_content("Your smart ballot tracker for " + BOOTH.election.name + ": " + BOOTH.encrypted_ballot_hash);
 };
 
+BOOTH.raw_ballot = function() {
+    UTILS.open_window_with_content("Your raw ballot for " + BOOTH.election.name + " with smart ballot tracker " + BOOTH.encrypted_ballot_hash + ":\n\n" + (BOOTH.encrypted_ballot_serialized || JSON.stringify(BOOTH.encrypted_ballot.toJSONObject())));
+};
+
 BOOTH.do_done = function() {
   BOOTH.started_p = false;
 };
