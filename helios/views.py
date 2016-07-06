@@ -1441,6 +1441,38 @@ def voters_email(request, election):
       'template' : template,
       'templates' : TEMPLATES})
 
+@election_admin()
+def voters_add_manual(request, election):
+  if election.tallying_started_at:
+    raise PermissionDenied()
+  
+  if request.method == "GET":
+    add_manual_form = forms.VoterAddManualForm()
+  else:
+    check_csrf(request)
+    
+    add_manual_form = forms.VoterAddManualForm(request.POST)
+    if add_manual_form.is_valid():
+      user = User.update_or_create('manual', add_manual_form.cleaned_data['voter_id'], add_manual_form.cleaned_data['voter_id'], {})
+      voter = Voter.register_user_in_election(user, election)
+      
+      # modified from one_election_cast_confirm
+      encrypted_vote = add_manual_form.cleaned_data['encrypted_ballot']
+      vote_fingerprint = cryptoutils.hash_b64(encrypted_vote)
+      vote = datatypes.LDObject.fromDict(utils.from_json(encrypted_vote), type_hint='phoebus/EncryptedVote').wrapped_obj
+      
+      cast_vote = CastVote(vote=vote, voter=voter, vote_hash=vote_fingerprint, cast_at=datetime.datetime.utcnow(), cast_ip=None)
+      
+      # don't store the vote in the voter's data structure until verification
+      cast_vote.save()
+      
+      # launch the verification task
+      tasks.cast_vote_verify_and_store.delay(cast_vote_id = cast_vote.id)
+      
+      return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(voters_list_pretty, args=[election.uuid]))
+  
+  return render_template(request, "voters_add_manual", {'election': election, 'add_manual_form': add_manual_form})
+
 # Individual Voters
 @election_view()
 @return_json

@@ -1,0 +1,15 @@
+{% extends "helios/templates/cryptobase.html" %}
+
+{% block content %}
+  <h2 class="title">{{election.name}} &mdash; Add Manual Vote <span style="font-size:0.7em;">[<a href="{% url "helios.views.voters_list_pretty" election.uuid %}">cancel</a>]</span></h2>
+  
+<form method="post" action="">
+<input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+<table class="pretty">
+{{add_manual_form.as_table}}
+</table>
+
+<input type="submit" value="Add Vote" />
+</form>
+
+{% endblock %}

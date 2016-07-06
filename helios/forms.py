@@ -51,3 +51,6 @@ class VoterPasswordForm(forms.Form):
   voter_id = forms.CharField(max_length=50, label="Voter ID")
   password = forms.CharField(widget=forms.PasswordInput(), max_length=100)
 
+class VoterAddManualForm(forms.Form):
+  voter_id = forms.CharField(max_length=50, label="Voter ID")
+  encrypted_ballot = forms.CharField(widget=forms.Textarea)

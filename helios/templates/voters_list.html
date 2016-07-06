@@ -84,6 +84,13 @@ Prior Bulk Uploads:
 </ul>
 {% endif %}
 {% endif %}
+
+{% if not election.tallying_started_at %}
+<p>
+<a class="button" href="{% url "helios.views.voters_add_manual" election_uuid=election.uuid %}">add manual vote</a>
+</p>
+{% endif %}
+
 {% endif %}
 
 {% if voters %}

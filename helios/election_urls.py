@@ -86,6 +86,7 @@ urlpatterns = patterns('',
     (r'^/voters/list$', voters_list_pretty),
     (r'^/voters/eligibility$', voters_eligibility),
     (r'^/voters/email$', voters_email),
+    (r'^/voters/add-manual$', voters_add_manual),
     (r'^/voters/(?P<voter_uuid>[^/]+)$', one_voter),
     (r'^/voters/(?P<voter_uuid>[^/]+)/delete$', voter_delete),
 
