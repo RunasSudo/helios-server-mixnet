@@ -1696,8 +1696,9 @@ def mixnet_upload_shuffle(request, election, mixnet_index):
 
 @election_view()
 @return_json
-def mixnets_num(request, election):
-  return election.mixnets.filter().count()
+def list_mixnets(request, election):
+  mixnets = election.mixnets.filter()
+  return [t.toJSONDict(complete=True) for t in mixnets]
 
 @election_view()
 @return_json

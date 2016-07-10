@@ -85,6 +85,11 @@ class ElectionMixnet(HeliosModel):
     ordering = ['-mix_order']
     unique_together = [('election', 'mix_order'), ('election', 'name')]
 
+  @property
+  def datatype(self):
+    return self.election.datatype.replace('Election', 'ElectionMixnet')
+  alias = None
+
   def save(self, *args, **kwargs):
     """
     override this just to get a hook

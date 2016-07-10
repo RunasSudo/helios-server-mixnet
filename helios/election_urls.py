@@ -106,7 +106,7 @@ urlpatterns = patterns('',
     (r'^/mixnets/(?P<mixnet_index>[^/]+)/shuffle-and-prove$', mixnet_shuffle_and_prove),
     (r'^/mixnets/(?P<mixnet_index>[^/]+)/upload-shuffle$', mixnet_upload_shuffle),
     
-    (r'^/mixnets$', mixnets_num),
+    (r'^/mixnets/$', list_mixnets),
     (r'^/mixnets/(?P<mixnet_index>[^/]+)/answers$', mixnets_answers),
     (r'^/mixnets/(?P<mixnet_index>[^/]+)/proof$', mixnets_proof),
 

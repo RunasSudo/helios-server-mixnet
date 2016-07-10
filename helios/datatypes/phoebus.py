@@ -41,6 +41,9 @@ class Trustee(LegacyObject):
         'commitment': 'phoebus/ThresholdEncryptionCommitment'
     }
 
+class ElectionMixnet(LegacyObject):
+    FIELDS = ['name', 'mixnet_type', 'mix_order', 'email']
+
 class ThresholdEncryptionCommitment(LegacyObject):
     WRAPPED_OBJ_CLASS = crypto_elgamal.TrusteeThresholdCommitment
     
