@@ -1534,7 +1534,8 @@ def ballot_list(request, election):
   voters = Voter.get_by_election(election, cast=True, limit=limit, after=after)
 
   # we explicitly cast this to a short cast vote
-  return [v.last_cast_vote().ld_object.short.toDict(complete=True) for v in voters]
+  # return [v.last_cast_vote().ld_object.short.toDict(complete=True) for v in voters]
+  return [v.last_cast_vote().ld_object.toDict(complete=True) for v in voters]
 
 ##
 ## mixnets & proofs
