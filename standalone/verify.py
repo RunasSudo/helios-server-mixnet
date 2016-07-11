@@ -18,6 +18,18 @@
 # ily Python 3
 from __future__ import print_function, unicode_literals
 
+import argparse
+parser = argparse.ArgumentParser(description="Verify a helios-server-mixnet election.")
+
+parser.add_argument("location", help="URL or path to the election")
+parser.add_argument("--type", choices=["local", "remote"], default="local")
+parser.add_argument("--uuid", help="Manually specify the UUID of the election if local")
+args = parser.parse_args()
+
+args.location = args.location.rstrip("/")
+if args.uuid is None:
+	args.uuid = args.location.split("/")[-1]
+
 from mixnet.Ciphertext import Ciphertext
 from mixnet.CiphertextCollection import CiphertextCollection
 from mixnet.EGCryptoSystem import EGCryptoSystem
@@ -31,9 +43,18 @@ from mixnet.threshold.ThresholdEncryptionCommitment import ThresholdEncryptionCo
 from mixnet.threshold.ThresholdEncryptionSetUp import ThresholdEncryptionSetUp
 from mixnet.threshold.ThresholdPublicKey import ThresholdPublicKey
 
-import hashlib, itertools, json, math, sys, urllib2
+import hashlib, itertools, json, math, urllib2
 
-electionUrl = sys.argv[1].rstrip("/")
+def get_file(loc_remote, loc_local=None):
+	global args
+	if args.type == "local":
+		if loc_local is None:
+			loc_local = "/" + args.uuid + loc_remote + ".json"
+		with open(args.location + loc_local, "r") as f:
+			return f.read()
+	else:
+		with urllib2.urlopen(args.location + loc_remote) as f:
+			return f.read()
 
 class VerificationException(Exception):
 	pass
@@ -49,9 +70,9 @@ class statusCheck:
 		else:
 			print(": OK")
 
-with statusCheck("Downloading election data"):
+with statusCheck("Getting election data"):
 	# Election
-	election = json.load(urllib2.urlopen(electionUrl))
+	election = json.loads(get_file(""))
 	numQuestions = len(election['questions'])
 	
 	nbits = ((int(math.log(long(election["public_key"]["p"]), 2)) - 1) & ~255) + 256
@@ -59,25 +80,21 @@ with statusCheck("Downloading election data"):
 	pk = PublicKey(cryptosystem, long(election["public_key"]["y"]))
 	
 	# Ballots
-	ballots = []
-	ballotList = json.load(urllib2.urlopen(electionUrl + "/ballots"))
-	for ballotInfo in ballotList:
-		ballot = json.load(urllib2.urlopen(electionUrl + "/ballots/" + ballotInfo["voter_uuid"] + "/last"))
-		ballots.append(ballot)
+	ballots = json.loads(get_file("/ballots"))
 	
 	# Results
-	results = json.load(urllib2.urlopen(electionUrl + "/result"))
+	results = json.loads(get_file("/result"))
 	
 	# Mixes & Proofs
 	mixnets = []
-	numMixnets = json.load(urllib2.urlopen(electionUrl + "/mixnets"))
+	numMixnets = len(json.loads(get_file("/mixnets")))
 	for i in xrange(0, numMixnets):
-		mixedAnswers = json.load(urllib2.urlopen(electionUrl + "/mixnets/" + str(i) + "/answers"))
-		shufflingProof = json.load(urllib2.urlopen(electionUrl + "/mixnets/" + str(i) + "/proof"))
+		mixedAnswers = json.loads(get_file("/mixnets/" + str(i) + "/answers"))
+		shufflingProof = json.loads(get_file("/mixnets/" + str(i) + "/proof"))
 		mixnets.append((mixedAnswers, shufflingProof))
 	
 	# Trustees
-	trustees = json.load(urllib2.urlopen(electionUrl + "/trustees"))
+	trustees = json.loads(get_file("/trustees"))
 	trusteeThreshold = int(election['trustee_threshold'])
 
 # Verify mixes

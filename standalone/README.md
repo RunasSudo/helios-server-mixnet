@@ -10,9 +10,10 @@ Takes as input a JSON file containing a list of ballots (as shown in each mixnet
 ## verify.py
 Requires a Python 2 virtual environment.
 
-    ./verify.py https://helios.example.com/helios/elections/12345678-90ab-cdef-1234-567890abcdef
+    ./verify.py --type local --uuid 12345678-90ab-cdef-1234-567890abcdef ~/path/to/election/dump
+    ./verify.py --type remote https://helios.example.com/helios/elections/12345678-90ab-cdef-1234-567890abcdef
 
-Downloads the data for a Helios mixnet election and verifies the shuffles and decryption.
+Gets the data for a Helios mixnet election and verifies the shuffles and decryption.
 
 ## count/*_to_blt.py
 Requires **Python 3**.
