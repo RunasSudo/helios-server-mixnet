@@ -7,6 +7,11 @@ Requires a Python 2 virtual environment.
 
 Takes as input a JSON file containing a list of ballots (as shown in each mixnet's homepage when time to shuffle), and outputs a JSON file containing the shuffled ballots, and a JSON file containing the proof of shuffle.
 
+## export.sh
+    ./export.sh
+
+Exports the election as configured in the file to the current directory in a format suitable for `verify.py`.
+
 ## verify.py
 Requires a Python 2 virtual environment.
 
