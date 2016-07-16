@@ -1640,8 +1640,13 @@ def mixnet_shuffle_and_prove(request, election, mixnet_index):
   # :/
   pk = {'p': election.public_key.p, 'q': election.public_key.q, 'g': election.public_key.g, 'y': election.public_key.y}
   origDict = {'public_key': pk, 'answers': []}
-  for answer in mixnet.get_original_answers():
-    origDict['answers'].append(answer.toJSONDict())
+  
+  for question in xrange(0, len(election.questions)):
+    answers_q = []
+    for answer in mixnet.get_original_answers(question):
+      answers_q.append(answer.toJSONDict())
+    origDict['answers'].append(answers_q)
+  
   orig = json.dumps(origDict)
   
   return render_template(request, 'mixnet_shuffle_and_prove', {'election': election, 'mixnet_index': mixnet_index, 'mixnet': mixnet, 'orig': orig})
@@ -1652,6 +1657,9 @@ def mixnet_upload_shuffle(request, election, mixnet_index):
   if 'shuffle_file' not in request.FILES or 'proof_file' not in request.FILES:
     return HttpResponseBadRequest(request.FILES)
   
+  shuf_dict = json.load(request.FILES['shuffle_file'])
+  proof_dict = json.load(request.FILES['proof_file'])
+  
   mixnet = election.mixnets.filter()[int(mixnet_index)]
   
   import phoebus.phoebus
@@ -1661,35 +1669,36 @@ def mixnet_upload_shuffle(request, election, mixnet_index):
   from phoebus.mixnet.CiphertextCollection import CiphertextCollection
   from phoebus.mixnet.ShufflingProof import ShufflingProof
   
-  # Read the uploaded shuffle and proof
-  shuf = CiphertextCollection.from_dict(json.load(request.FILES['shuffle_file']), pk, nbits)
-  proof = ShufflingProof.from_dict(json.load(request.FILES['proof_file']), pk, nbits)
+  for question in xrange(0, len(election.questions)):
+    # Read the uploaded shuffle and proof
+    shuf = CiphertextCollection.from_dict(shuf_dict[question], pk, nbits)
+    proof = ShufflingProof.from_dict(proof_dict[question], pk, nbits)
+    
+    # Convert the ballots to ciphertexts
+    orig = CiphertextCollection(pk)
+    for ballot in mixnet.get_original_answers(question):
+      ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
+      ciphertext.append(long(ballot.choice.alpha), long(ballot.choice.beta))
+      orig.add_ciphertext(ciphertext)
+    
+    # Verify the proof
+    if not proof.verify(orig, shuf):
+      return HttpResponse(content="FAILURE")
   
-  # Convert the ballots to ciphertexts
-  orig = CiphertextCollection(pk)
-  for ballot in mixnet.get_original_answers():
-    ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
-    ciphertext.append(long(ballot.choice.alpha), long(ballot.choice.beta))
-    orig.add_ciphertext(ciphertext)
-  
-  # Verify the proof
-  if not proof.verify(orig, shuf):
-    return HttpResponse(content="FAILURE")
-  
-  # Convert the mixnet results
-  # TODO: Clean this the hell up
-  new_answers = helios.workflows.mixnet.MixedAnswers([], question_num=0)
-  for index, ct in enumerate(shuf):
-    cipher = helios.crypto.elgamal.Ciphertext(alpha=ct.gamma[0], beta=ct.delta[0])
-    new_answers.answers.append(helios.workflows.mixnet.MixedAnswer(choice=cipher, index=index))
-  mixed_votes = helios.models.MixedAnswers(mixnet=mixnet)
-  mixed_votes.mixed_answers = new_answers.ld_object
-  mixed_votes.shuffling_proof = json_module.dumps(proof.to_dict())
-  mixed_votes.save()
-  
-  mixnet.mixing_finished_at = datetime.datetime.now()
-  mixnet.status = 'finished'
-  mixnet.save()
+    # Convert the mixnet results (transaction is atomic, so this is ok)
+    new_answers = helios.workflows.mixnet.MixedAnswers([], question_num=question)
+    for index, ct in enumerate(shuf):
+      cipher = helios.crypto.elgamal.Ciphertext(alpha=ct.gamma[0], beta=ct.delta[0])
+      new_answers.answers.append(helios.workflows.mixnet.MixedAnswer(choice=cipher, index=index))
+    
+    mixed_votes = helios.models.MixedAnswers(mixnet=mixnet, question=question)
+    mixed_votes.mixed_answers = new_answers.ld_object
+    mixed_votes.shuffling_proof = json_module.dumps(proof.to_dict())
+    mixed_votes.save()
+    
+    mixnet.mixing_finished_at = datetime.datetime.now()
+    mixnet.status = 'finished'
+    mixnet.save()
   
   return HttpResponse(content="OK!")
 
