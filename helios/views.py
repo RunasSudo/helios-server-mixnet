@@ -1102,10 +1102,10 @@ def trustee_upload_decryption(request, election, trustee_uuid):
   factors_and_proofs = utils.from_json(request.POST['factors_and_proofs'])
 
   # verify the decryption factors
-  trustee.decryption_factors = [[datatypes.LDObject.fromDict(factor, type_hint='core/BigInteger').wrapped_obj for factor in one_q_factors] for one_q_factors in factors_and_proofs['decryption_factors']]
+  trustee.decryption_factors = [[[datatypes.LDObject.fromDict(factor, type_hint='core/BigInteger').wrapped_obj for factor in one_a_factors] for one_a_factors in one_q_factors] for one_q_factors in factors_and_proofs['decryption_factors']]
 
   # each proof needs to be deserialized
-  trustee.decryption_proofs = [[datatypes.LDObject.fromDict(proof, type_hint='legacy/EGZKProof').wrapped_obj for proof in one_q_proofs] for one_q_proofs in factors_and_proofs['decryption_proofs']]
+  trustee.decryption_proofs = [[[datatypes.LDObject.fromDict(proof, type_hint='legacy/EGZKProof').wrapped_obj for proof in one_a_proofs] for one_a_proofs in one_q_proofs] for one_q_proofs in factors_and_proofs['decryption_proofs']]
 
   if trustee.verify_decryption_proofs():
     trustee.save()
@@ -1678,7 +1678,8 @@ def mixnet_upload_shuffle(request, election, mixnet_index):
     orig = CiphertextCollection(pk)
     for ballot in mixnet.get_original_answers(question):
       ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
-      ciphertext.append(long(ballot.choice.alpha), long(ballot.choice.beta))
+      for choice in ballot.choices:
+        ciphertext.append(long(choice.alpha), long(choice.beta))
       orig.add_ciphertext(ciphertext)
     
     # Verify the proof
@@ -1688,8 +1689,11 @@ def mixnet_upload_shuffle(request, election, mixnet_index):
     # Convert the mixnet results (transaction is atomic, so this is ok)
     new_answers = helios.workflows.mixnet.MixedAnswers([], question_num=question)
     for index, ct in enumerate(shuf):
-      cipher = helios.crypto.elgamal.Ciphertext(alpha=ct.gamma[0], beta=ct.delta[0])
-      new_answers.answers.append(helios.workflows.mixnet.MixedAnswer(choice=cipher, index=index))
+      choices = []
+      for i in xrange(0, ct.get_length()):
+        cipher = helios.crypto.elgamal.Ciphertext(alpha=ct.gamma[i], beta=ct.delta[i])
+        choices.append(cipher)
+      new_answers.answers.append(helios.workflows.mixnet.MixedAnswer(choices=choices, index=index))
     
     mixed_votes = helios.models.MixedAnswers(mixnet=mixnet, question=question)
     mixed_votes.mixed_answers = new_answers.ld_object

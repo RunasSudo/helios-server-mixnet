@@ -36,8 +36,8 @@ class Trustee(LegacyObject):
     STRUCTURED_FIELDS = {
         'public_key' : 'legacy/EGPublicKey',
         'pok': 'legacy/DLogProof',
-        'decryption_factors': arrayOf(arrayOf('core/BigInteger')),
-        'decryption_proofs' : arrayOf(arrayOf('legacy/EGZKProof')),
+        'decryption_factors': arrayOf(arrayOf(arrayOf('core/BigInteger'))),
+        'decryption_proofs' : arrayOf(arrayOf(arrayOf('legacy/EGZKProof'))),
         'commitment': 'phoebus/ThresholdEncryptionCommitment'
     }
 
@@ -73,7 +73,7 @@ class Tally(LegacyObject):
     WRAPPED_OBJ_CLASS = mixnet.Tally
     FIELDS = ['tally', 'num_tallied']
     STRUCTURED_FIELDS = {
-        'tally': arrayOf(arrayOf('legacy/EGCiphertext'))}
+        'tally': arrayOf(arrayOf(arrayOf('legacy/EGCiphertext')))}
 
 class EncryptedVote(LegacyObject):
     """
@@ -135,9 +135,9 @@ class ShufflingProof(LegacyObject):
 
 class MixedAnswer(LegacyObject):
     WRAPPED_OBJ_CLASS = mixnet.MixedAnswer
-    FIELDS = ['choice', 'index']
+    FIELDS = ['choices', 'index']
     STRUCTURED_FIELDS = {
-        'choice': 'legacy/EGCiphertext'
+        'choices': arrayOf('legacy/EGCiphertext')
     }
 
 

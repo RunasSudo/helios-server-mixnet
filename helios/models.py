@@ -128,7 +128,7 @@ class ElectionMixnet(HeliosModel):
           if not vote.vote:
             continue
 
-          votes.append(MixedAnswer(choice=vote.vote.answers[question].choices[0],
+          votes.append(MixedAnswer(choices=vote.vote.answers[question].choices,
                                   index=index))
     else:
       mixnet = ElectionMixnet.objects.get(election=self.election,
@@ -326,10 +326,17 @@ class Election(HeliosModel):
       print self.result
       results = []
       for result in self.result[question]:
-        results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result, nr_cands), nr_cands))
+        results.append(phoebus.to_absolute_answers(phoebus.gamma_decode(result[0], nr_cands), nr_cands))
       return results
     else:
-      return [[x - 1] for x in self.result[question]]
+      results = []
+      for result in self.result[question]:
+        if 2 in result:
+          results.append([result.index(2)])
+        else:
+          results.append([])
+      
+      return results
 
   @property
   def pretty_type(self):
@@ -915,7 +922,7 @@ class Election(HeliosModel):
     tally.tally = []
     for q in xrange(0, len(self.questions)):
       answers = self.last_mixed_mixnet.mixed_answers.get(question=q).mixed_answers.answers
-      tally.tally.append([a.choice for a in answers])
+      tally.tally.append([a.choices for a in answers])
     self.encrypted_tally = tally
     self.save()
 
@@ -1477,10 +1484,10 @@ class Trustee(HeliosModel):
   commitment = LDObjectField(type_hint = 'phoebus/ThresholdEncryptionCommitment', null=True)
 
   # decryption factors
-  decryption_factors = LDObjectField(type_hint = datatypes.arrayOf(datatypes.arrayOf('core/BigInteger')),
+  decryption_factors = LDObjectField(type_hint = datatypes.arrayOf(datatypes.arrayOf(datatypes.arrayOf('core/BigInteger'))),
                                      null=True)
 
-  decryption_proofs = LDObjectField(type_hint = datatypes.arrayOf(datatypes.arrayOf('legacy/EGZKProof')),
+  decryption_proofs = LDObjectField(type_hint = datatypes.arrayOf(datatypes.arrayOf(datatypes.arrayOf('legacy/EGZKProof'))),
                                     null=True)
 
   class Meta:

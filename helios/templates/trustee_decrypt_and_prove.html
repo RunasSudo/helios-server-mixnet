@@ -44,11 +44,16 @@ function decrypt_and_prove_tally(tally, public_key, secret_key) {
         decryption_factors[q_num] = [];
         decryption_proofs[q_num] = [];
 
-        $(q_tally).each(function(choice_num, choice_tally) {
-           var one_choice_result = secret_key.decryptionFactorAndProof(choice_tally, ElGamal.fiatshamir_challenge_generator);
-           
-           decryption_factors[q_num][choice_num] = one_choice_result.decryption_factor
-           decryption_proofs[q_num][choice_num] = one_choice_result.decryption_proof;
+        $(q_tally).each(function(a_num, a_tally) {
+            decryption_factors[q_num][a_num] = [];
+            decryption_proofs[q_num][a_num] = [];
+            
+            $(a_tally).each(function(block_num, block_tally) {
+                var one_choice_result = secret_key.decryptionFactorAndProof(block_tally, ElGamal.fiatshamir_challenge_generator);
+                
+                decryption_factors[q_num][a_num][block_num] = one_choice_result.decryption_factor
+                decryption_proofs[q_num][a_num][block_num] = one_choice_result.decryption_proof;
+            });
         });
     });
     
@@ -71,7 +76,9 @@ function do_tally() {
   var factors = factors_and_proof.decryption_factors
   var decryption_proofs = $(factors_and_proof.decryption_proofs).map(function(i, q_proof) {
       return $(q_proof).map(function(j, a_proof){
-         return a_proof.toJSONObject(); 
+          return $(a_proof).map(function(k, block_proof){
+              return block_proof.toJSONObject(); 
+          });
       });
   });
   

@@ -580,8 +580,10 @@ HELIOS.Tally.fromJSONObject = function(d, public_key) {
   
   var raw_tally = _(d['tally']).map(function(one_q) {
     return _(one_q).map(function(one_a) {
-      var new_val= ElGamal.Ciphertext.fromJSONObject(one_a, public_key);
-      return new_val;
+      return _(one_a).map(function(one_b) {
+        var new_val= ElGamal.Ciphertext.fromJSONObject(one_b, public_key);
+        return new_val;
+      });
     });
   });
   

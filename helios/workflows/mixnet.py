@@ -59,13 +59,13 @@ class MixedAnswer(WorkflowObject):
     def datatype(self):
         return "phoebus/MixedAnswer"
 
-    def __init__(self, choice=None, index=None):
+    def __init__(self, choices=None, index=None):
         self.index = index
-        self.choice = choice
+        self.choices = choices
 
     @classmethod
     def fromEncryptedAnswer(cls, answer, index):
-        return cls(answer=answer.choice, index=index)
+        return cls(choices=answer.choices, index=index)
 
     def to_phoebus_ballot(self, election, question_num):
       phoebus_enc = {'a': self.choice.alpha, 'b': self.choice.beta}
@@ -102,10 +102,17 @@ class Tally(HomomorphicTally):
     for q in xrange(0, len(self.tally)):
       decryption_factors_q = []
       decryption_proof_q = []
+      
       for vote in self.tally[q]:
-        dec_factor, proof = sk.decryption_factor_and_proof(vote)
-        decryption_factors_q.append(dec_factor)
-        decryption_proof_q.append(proof)
+        decryption_factors_b = []
+        decryption_proof_b = []
+        
+        for block in vote:
+          dec_factor, proof = sk.decryption_factor_and_proof(block)
+          decryption_factors_b.append(dec_factor)
+          decryption_proof_b.append(proof)
+        decryption_factors_q.append(decryption_factors_b)
+        decryption_proof_q.append(decryption_proof_b)
       decryption_factors.append(decryption_factors_q)
       decryption_proof.append(decryption_proof_q)
 
@@ -137,15 +144,18 @@ class Tally(HomomorphicTally):
       q_result = []
 
       for a_num, a in enumerate(q):
-        # coalesce the decryption factors into one list
-        dec_factor_list = [df[q_num][a_num] for df in decryption_factors]
-        raw_value = self.tally[q_num][a_num].decrypt(dec_factor_list, public_key)
+        a_result = []
+        for b_num, b in enumerate(a):
+          # coalesce the decryption factors into one list
+          dec_factor_list = [df[q_num][a_num][b_num] for df in decryption_factors]
+          raw_value = self.tally[q_num][a_num][b_num].decrypt(dec_factor_list, public_key)
 
-        # q_decode
-        if raw_value > public_key.q:
-            raw_value = -raw_value % public_key.p
-        # raw_value = raw_value - 1 # what. why?
-        q_result.append(raw_value)
+          # q_decode
+          if raw_value > public_key.q:
+              raw_value = -raw_value % public_key.p
+          # raw_value = raw_value - 1 # what. why?
+          a_result.append(raw_value)
+        q_result.append(a_result)
 
       result.append(q_result)
 

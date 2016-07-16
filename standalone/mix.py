@@ -33,26 +33,41 @@ proofOut = sys.argv[3]
 
 with open(dataIn, 'r') as dataFile:
 	data = json.load(dataFile)
-	
-	nbits = ((int(math.log(long(data["public_key"]["p"]), 2)) - 1) & ~255) + 256
-	cryptosystem = EGCryptoSystem.load(nbits, long(data["public_key"]["p"]), int(data["public_key"]["g"])) # The generator might be a long if it's big? I don't know.
-	pk = PublicKey(cryptosystem, long(data["public_key"]["y"]))
-	
-	ballots = data["answers"]
-	
+
+nbits = ((int(math.log(long(data["public_key"]["p"]), 2)) - 1) & ~255) + 256
+cryptosystem = EGCryptoSystem.load(nbits, long(data["public_key"]["p"]), int(data["public_key"]["g"])) # The generator might be a long if it's big? I don't know.
+pk = PublicKey(cryptosystem, long(data["public_key"]["y"]))
+
+ballots = data["answers"]
+shufs_list = []
+proofs_list = []
+
+def shuffleQuestion(question):
 	orig = CiphertextCollection(pk)
-	for ballot in ballots:
+	for ballot in ballots[question]:
 		ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
 		
-		ciphertext.append(long(ballot["choice"]["alpha"]), long(ballot["choice"]["beta"]))
+		for choice in ballot["choices"]:
+			ciphertext.append(long(choice["alpha"]), long(choice["beta"]))
 		
 		orig.add_ciphertext(ciphertext)
 	
-	print("Every day I'm shuffling.")
+	print("Shuffling answers for question " + str(question))
 	shuf, proof = orig.shuffle_with_proof()
 	
-	print("Shuffle complete. Writing results to file.")
-	with open(shuffleOut, 'w') as shuffleFile:
-		json.dump(shuf.to_dict(), shuffleFile)
-	with open(proofOut, 'w') as proofFile:
-		json.dump(proof.to_dict(), proofFile)
+	shufs_list.append(shuf.to_dict())
+	proofs_list.append(proof.to_dict())
+	
+	print("Shuffle complete for question " + str(question))
+
+if len(sys.argv) > 4:
+	shuffleQuestion(int(sys.argv[4]))
+else:
+	for question in xrange(0, len(ballots)):
+		shuffleQuestion(question)
+
+print("Writing results to file")
+with open(shuffleOut, 'w') as shuffleFile:
+	json.dump(shufs_list, shuffleFile)
+with open(proofOut, 'w') as proofFile:
+	json.dump(proofs_list, proofFile)

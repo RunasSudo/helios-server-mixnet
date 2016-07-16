@@ -387,13 +387,14 @@ class Tally(WorkflowObject):
     # go through each one
     for q_num, q in enumerate(self.tally):
       for a_num, answer_tally in enumerate(q):
-        # parse the proof
-        #proof = algs.EGZKProof.fromJSONDict(decryption_proofs[q_num][a_num])
-        proof = decryption_proofs[q_num][a_num]
-        
-        # check that g, alpha, y, dec_factor is a DH tuple
-        if not proof.verify(public_key.g, answer_tally.alpha, public_key.y, int(decryption_factors[q_num][a_num]), public_key.p, public_key.q, challenge_generator):
-          return False
+        for b_num, block_tally in enumerate(answer_tally):
+          # parse the proof
+          #proof = algs.EGZKProof.fromJSONDict(decryption_proofs[q_num][a_num])
+          proof = decryption_proofs[q_num][a_num][b_num]
+          
+          # check that g, alpha, y, dec_factor is a DH tuple
+          if not proof.verify(public_key.g, block_tally.alpha, public_key.y, int(decryption_factors[q_num][a_num][b_num]), public_key.p, public_key.q, challenge_generator):
+            return False
     
     return True
     
