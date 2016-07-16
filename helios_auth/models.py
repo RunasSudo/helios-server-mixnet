@@ -9,7 +9,6 @@ Ben Adida
 
 from django.db import models
 from jsonfield import JSONField
-from django.conf import settings
 
 import datetime, logging
 
@@ -174,6 +173,3 @@ class User(models.Model):
   @property
   def display_html_big(self):
     return self._display_html('big')
-
-  def is_site_admin(self):
-    return self.admin_p or len([admin for admin in settings.ADMINS if admin[1] == self.user_id]) > 0

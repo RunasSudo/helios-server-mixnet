@@ -132,7 +132,7 @@ def user_can_admin_election(user, election):
     return False
 
   # election or site administrator
-  return election.admin == user or user.is_site_admin()
+  return election.admin == user or user.admin_p
   
 def user_can_see_election(request, election):
   user = get_user(request)
@@ -211,13 +211,15 @@ def can_create_election(request):
     return False
     
   if helios.ADMIN_ONLY:
-    return user.is_site_admin()
+    if len([admin for admin in settings.ADMINS if admin[1] == user.user_id]) > 0:
+      return True
+    return user.admin_p
   else:
     return user.can_create_election()
-
+  
 def user_can_feature_election(user, election):
   if not user:
     return False
-  
-  return user.is_site_admin()
+    
+  return user.admin_p
   
