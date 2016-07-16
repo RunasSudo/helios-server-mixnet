@@ -7,6 +7,11 @@ Requires a Python 2 virtual environment.
 
 Takes as input a JSON file containing a list of ballots (as shown in each mixnet's homepage when time to shuffle), and outputs a JSON file containing the shuffled ballots, and a JSON file containing the proof of shuffle.
 
+If there are many questions, it is also possible to mix each question separately and combine them at the end to avoid issues half-way through a mix. For example:
+
+    for i in {0..2}; do ./mix.py ballots.json shuffle$i.json proof$i.json $i; done
+    ./combine.py shuffle.json proof.json {shuf,proof}{0..2}.json
+
 ## export.sh
     ./export.sh
 
