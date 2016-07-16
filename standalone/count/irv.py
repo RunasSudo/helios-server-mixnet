@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(description='Count an election using instant-ru
 parser.add_argument('election', help='OpenSTV blt file')
 parser.add_argument('--verbose', help='Display extra information', action='store_true')
 parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
-parser.add_argument('--ids', help="Display candidate IDs instead of lists of candidates", action='store_true')
+parser.add_argument('--npr', help="Generate a list of winners", action='store_true')
 args = parser.parse_args()
 
 def verboseLog(string):
@@ -192,18 +192,36 @@ def countVotes(ballots, candidates, fast):
 		
 		count += 1
 
-utils.Ballot.SHOW_IDS = args.ids
-
 # Read blt
 with open(args.election, 'r') as electionFile:
 	electionLines = electionFile.read().splitlines()
 	ballots, candidates, args.seats = utils.readBLT(electionLines)
 
-elected, exhausted = countVotes(ballots, candidates, args.fast)
-print()
-print("== TALLY COMPLETE")
-print()
-print("The winner is:")
-print("     {}".format(elected.name))
+if not args.npr:
+	elected, exhausted = countVotes(ballots, candidates, args.fast)
+	print()
+	print("== TALLY COMPLETE")
+	print()
+	print("The winner is:")
+	print("     {}".format(elected.name))
 
-print("---- Exhausted: {:.2f}".format(float(exhausted)))
+	print("---- Exhausted: {:.2f}".format(float(exhausted)))
+else:
+	nprElected = []
+	while len(candidates) > 0:
+		elected, exhausted = countVotes(ballots, candidates, args.fast)
+		nprElected.append(elected)
+		
+		print("== WINNER WAS {} - ITERATING".format(elected.name))
+		
+		candidates.remove(elected)
+	
+	print()
+	print("== TALLY COMPLETE")
+	print()
+	print("The winners are, in order of election:")
+	
+	print()
+	for candidate in nprElected:
+		print("     {}".format(candidate.name))
+	print()

@@ -25,8 +25,8 @@ parser = argparse.ArgumentParser(description='Count an election using Wright STV
 parser.add_argument('election', help='OpenSTV blt file')
 parser.add_argument('--verbose', help='Display extra information', action='store_true')
 parser.add_argument('--fast', help="Don't perform a full tally", action='store_true')
+parser.add_argument('--noround', help="Display raw fractions instead of rounded decimals", action='store_true')
 parser.add_argument('--quota', help='The quota/threshold condition: >=Droop or >H-B', choices=['geq-droop', 'gt-hb'], default='geq-droop')
-parser.add_argument('--ids', help="Display candidate IDs instead of lists of candidates", action='store_true')
 parser.add_argument('--countback', help="Store electing quota of votes for a given candidate ID and store in a given blt file", nargs=2)
 args = parser.parse_args()
 
@@ -42,6 +42,13 @@ def resetCount(ballots, candidates):
 		candidate.ctvv = Fraction('0')
 		candidate.ballots.clear()
 
+def toNum(num):
+	global args
+	if args.noround:
+		return str(num)
+	else:
+		return "{:.2f}".format(float(num))
+
 def distributePreferences(ballots, remainingCandidates):
 	exhausted = Fraction('0')
 	
@@ -49,7 +56,7 @@ def distributePreferences(ballots, remainingCandidates):
 		isExhausted = True
 		for preference in ballot.preferences:
 			if preference in remainingCandidates:
-				verboseLog("   - Assigning {:.2f} votes to {} via {}".format(float(ballot.value), preference.name, ballot.prettyPreferences))
+				verboseLog("   - Assigning {} votes to {} via {}".format(toNum(ballot.value), preference.name, ballot.prettyPreferences))
 				
 				isExhausted = False
 				preference.ctvv += ballot.value
@@ -57,7 +64,7 @@ def distributePreferences(ballots, remainingCandidates):
 				
 				break
 		if isExhausted:
-			verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
+			verboseLog("   - Exhausted {} votes via {}".format(toNum(ballot.value), ballot.prettyPreferences))
 			exhausted += ballot.value
 			ballot.value = Fraction('0')
 	
@@ -96,7 +103,7 @@ def printVotes(remainingCandidates, provisionallyElected):
 	remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 	print()
 	for candidate in remainingCandidates:
-		print("    {}{}: {:.2f}".format("*" if candidate in provisionallyElected else " ", candidate.name, float(candidate.ctvv)))
+		print("    {}{}: {}".format("*" if candidate in provisionallyElected else " ", candidate.name, toNum(candidate.ctvv)))
 	print()
 
 def countVotes(ballots, candidates, numSeats, fast):
@@ -116,9 +123,9 @@ def countVotes(ballots, candidates, numSeats, fast):
 		
 		quota = calcQuota(candidates, numSeats)
 		
-		print("---- Total Votes: {:.2f}".format(float(totalVote(remainingCandidates))))
-		print("---- Exhausted: {:.2f}".format(float(exhausted)))
-		print("---- Quota: {:.2f}".format(float(quota)))
+		print("---- Total Votes: {}".format(toNum(totalVote(remainingCandidates))))
+		print("---- Exhausted: {}".format(toNum(exhausted)))
+		print("---- Quota: {}".format(toNum(quota)))
 		print()
 		
 		remainingCandidates = sorted(remainingCandidates, key=lambda k: k.ctvv, reverse=True)
@@ -136,16 +143,17 @@ def countVotes(ballots, candidates, numSeats, fast):
 			for candidate in mostVotesElected:
 				if candidate.ctvv > quota:
 					multiplier = (candidate.ctvv - quota) / candidate.ctvv
-					print("---- Transferring surplus from {} at value {:.2f}".format(candidate.name, float(multiplier)))
+					print("---- Transferring surplus from {} at value {}".format(candidate.name, toNum(multiplier)))
 					
 					for ballot in candidate.ballots:
 						transferTo = surplusTransfer(ballot.preferences, candidate, provisionallyElected, remainingCandidates)
 						if transferTo == False:
-							verboseLog("   - Exhausted {:.2f} votes via {}".format(float(ballot.value), ballot.prettyPreferences))
+							verboseLog("   - Exhausted {} votes via {}".format(toNum(ballot.value), ballot.prettyPreferences))
+							ballot.value *= (1 - multiplier)
 							# exhausted += ballot.value * multiplier
 							# Since it retains its value and remains in the count, we will not count it as exhausted.
 						else:
-							verboseLog("   - Transferring {:.2f} votes to {} via {}".format(float(ballot.value), transferTo.name, ballot.prettyPreferences))
+							verboseLog("   - Transferring {} votes to {} via {}".format(toNum(ballot.value), transferTo.name, ballot.prettyPreferences))
 							newBallot = copy.copy(ballot)
 							ballot.value *= (1 - multiplier)
 							newBallot.value *= multiplier
@@ -170,7 +178,7 @@ def countVotes(ballots, candidates, numSeats, fast):
 			remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 			for candidate in remainingCandidates:
 				if candidate not in provisionallyElected:
-					print("**** {} provisionally elected on {:.2f} quotas".format(candidate.name, float(candidate.ctvv / quota)))
+					print("**** {} provisionally elected on {} quotas".format(candidate.name, toNum(candidate.ctvv / quota)))
 					provisionallyElected.append(candidate)
 			return provisionallyElected, exhausted
 		
@@ -230,13 +238,11 @@ def countVotes(ballots, candidates, numSeats, fast):
 			remainingCandidates.sort(key=lambda k: k.ctvv, reverse=True)
 			for candidate in remainingCandidates:
 				if candidate not in provisionallyElected:
-					print("**** {} provisionally elected on {:.2f} quotas".format(candidate.name, float(candidate.ctvv / quota)))
+					print("**** {} provisionally elected on {} quotas".format(candidate.name, toNum(candidate.ctvv / quota)))
 					provisionallyElected.append(candidate)
 			return provisionallyElected, exhausted
 		
 		count += 1
-
-utils.Ballot.SHOW_IDS = args.ids
 
 # Read blt
 with open(args.election, 'r') as electionFile:
@@ -245,7 +251,7 @@ with open(args.election, 'r') as electionFile:
 
 if args.verbose:
 	for ballot in ballots:
-		print("{:.2f} : {}".format(float(ballot.value), ",".join([x.name for x in ballot.preferences])))
+		print("{} : {}".format(toNum(ballot.value), ",".join([x.name for x in ballot.preferences])))
 
 provisionallyElected, exhausted = countVotes(ballots, candidates, args.seats, args.fast)
 print()
@@ -258,10 +264,10 @@ for candidate in provisionallyElected:
 	print("     {}".format(candidate.name))
 print()
 
-print("---- Exhausted: {:.2f}".format(float(exhausted)))
+print("---- Exhausted: {}".format(toNum(exhausted)))
 
 if args.countback:
-	candidate = candidates[int(args.countback[0]) - 1]
+	candidate = next(x for x in candidates if x.name == args.countback[0])
 	print("== STORING COUNTBACK DATA FOR {}".format(candidate.name))
 	
 	# Sanity check
@@ -275,4 +281,6 @@ if args.countback:
 		candidatesToExclude.append(peCandidate)
 	
 	with open(args.countback[1], 'w') as countbackFile:
-		utils.writeBLT(candidate.ballots, candidates, 1, candidatesToExclude, countbackFile)
+		# use --noround to determine whether to use standard BLT format or rational BLT format
+		stringify = str if args.noround else float
+		utils.writeBLT(candidate.ballots, candidates, 1, candidatesToExclude, countbackFile, stringify)

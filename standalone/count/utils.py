@@ -19,11 +19,7 @@ from fractions import Fraction
 import sys
 
 class Ballot:
-	SHOW_IDS = False
-	
 	def __init__(self, preferences, prettyPreferences, value=1):
-		global args
-		
 		self.preferences = preferences
 		self.prettyPreferences = prettyPreferences
 		
@@ -45,10 +41,10 @@ def readBLT(electionLines):
 	
 	# Read withdrawn candidates
 	withdrawn = []
-	for i in range(1, len(electionLines)):
-		if not electionLines[i].startswith("-"):
-			break
-		withdrawn.append(int(electionLines[i].strip("-")) - 1)
+	i = 1
+	if electionLines[i].startswith("-"):
+		withdrawn = [int(x.lstrip("-")) - 1 for x in electionLines[i].split(" ")]
+		i += 1
 	
 	# Read ballots
 	for j in range(i, len(electionLines)):
@@ -59,7 +55,7 @@ def readBLT(electionLines):
 		ballotData.append((bits[0], preferences))
 	
 	# Read candidates
-	for k in range(j + 1, len(electionLines)): # j + 1 to skip '0' line
+	for k in range(j + 1, len(electionLines) - 1): # j + 1 to skip '0' line, len - 1 to skip title
 		candidates.append(Candidate(electionLines[k].strip('"')))
 	
 	assert len(candidates) == numCandidates
@@ -68,10 +64,7 @@ def readBLT(electionLines):
 	ballots = []
 	for ballot in ballotData:
 		preferences = [candidates[x] for x in ballot[1] if x not in withdrawn]
-		if Ballot.SHOW_IDS:
-			ballots.append(Ballot(preferences, ballot[1], ballot[0]))
-		else:
-			ballots.append(Ballot(preferences, [x.name for x in preferences], ballot[0]))
+		ballots.append(Ballot(preferences, [x.name for x in preferences], ballot[0]))
 	
 	# Process withdrawn candidates
 	withdrawnCandidates = [candidates[x] for x in withdrawn]
@@ -80,22 +73,24 @@ def readBLT(electionLines):
 	
 	return ballots, candidates, seats
 
-def writeBLT(ballots, candidates, seats, withdrawn=[], outFile=sys.stdout):
+def writeBLT(ballots, candidates, seats, withdrawn=[], outFile=sys.stdout, stringify=str):
 	print("{} {}".format(len(candidates), seats), file=outFile)
 	
-	for candidate in withdrawn:
-		print("-{}".format(candidates.index(candidate) + 1), file=outFile)
+	if len(withdrawn) > 0:
+		print(" ".join(["-{}".format(candidates.index(candidate) + 1) for candidate in withdrawn]), file=outFile)
 	
 	for ballot in ballots:
 		if ballot.preferences:
-			print("{} {} 0".format(ballot.value, " ".join(str(candidates.index(x) + 1) for x in ballot.preferences)), file=outFile)
+			print("{} {} 0".format(stringify(ballot.value), " ".join(str(candidates.index(x) + 1) for x in ballot.preferences)), file=outFile)
 		else:
-			print("{} 0".format(ballot.value), file=outFile)
+			print("{} 0".format(stringify(ballot.value)), file=outFile)
 	
 	print("0", file=outFile)
 	
 	for candidate in candidates:
 		print('"{}"'.format(candidate.name), file=outFile)
+	
+	print('""', file=outFile)
 
 # ----- HELIOS GAMMA STUFF -----
 
