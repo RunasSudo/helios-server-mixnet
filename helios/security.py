@@ -211,8 +211,6 @@ def can_create_election(request):
     return False
     
   if helios.ADMIN_ONLY:
-    if len([admin for admin in settings.ADMINS if admin[1] == user.user_id]) > 0:
-      return True
     return user.admin_p
   else:
     return user.can_create_election()
