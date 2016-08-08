@@ -38,9 +38,11 @@ with open(args.election, 'r') as electionFile:
 with open(args.result, 'r') as resultFile:
 	results = json.load(resultFile)
 	
+	result_squashed = [x[0] if isinstance(x, list) else x for x in results[args.question]]
+	
 	ballots = []
 	# Preprocess groups
-	for result, group in itertools.groupby(sorted(results[args.question])):
+	for result, group in itertools.groupby(sorted(result_squashed)):
 		preferences = utils.to_absolute_answers(utils.gamma_decode(result, len(candidates)), len(candidates))
 		ballots.append(utils.Ballot([candidates[x] for x in preferences], None, len(list(group))))
 
