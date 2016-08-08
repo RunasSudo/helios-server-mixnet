@@ -25,8 +25,6 @@ class ElectionForm(forms.Form):
   if settings.ALLOW_ELECTION_INFO_URL:
     election_info_url = forms.CharField(required=False, initial="", label="Election Info Download URL", help_text="the URL of a PDF document that contains extra election information, e.g. candidate bios and statements")
   
-
-#class ElectionTimesForm(forms.Form):
   # times
   voting_starts_at = SplitDateTimeField(help_text = 'UTC date and time when voting begins',
                                    widget=SplitSelectDateTimeWidget, required=False)
