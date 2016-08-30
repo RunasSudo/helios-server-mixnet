@@ -831,7 +831,8 @@ class Election(object):
         for v in self.encrypted_ballots:
             ballot = v.encrypted_ballot
             ct = MixCiphertext(mix_nbits, mix_pkfinger)
-            ct.append(ballot['a'], ballot['b'])
+            for x in ballot:
+                ct.append(x['a'], x['b'])
             add_ciphertext(ct)
         return mix_collection
 
@@ -848,7 +849,9 @@ class Election(object):
         append = ballots.append
 
         for ct in mix_shuffled:
-            encrypted_ballot = {'a': ct.gamma[0], 'b': ct.delta[0]}
+            encrypted_ballot = []
+            for i in xrange(0, ct.get_length()):
+                encrypted_ballot.append({'a': ct.gamma[i], 'b': ct.delta[i]})
             append(Ballot(self, encrypted_ballot=encrypted_ballot))
 
         self.mixed_ballots = ballots

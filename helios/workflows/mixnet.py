@@ -36,9 +36,11 @@ class Mixnet(WorkflowObject):
 
     new_answers = MixedAnswers([], question_num=question_num)
     for index, ballot in enumerate(new_ballots):
-      cipher = Ciphertext(alpha=ballot.encrypted_ballot['a'],
-          beta=ballot.encrypted_ballot['b'])
-      new_answers.answers.append(MixedAnswer(choice=cipher, index=index))
+      ciphers = []
+      for bit in ballot.encrypted_ballot:
+        cipher = Ciphertext(alpha=bit['a'], beta=bit['b'])
+        ciphers.append(cipher)
+      new_answers.answers.append(MixedAnswer(choices=ciphers, index=index))
 
     return new_answers, mix_proof
 
@@ -68,7 +70,9 @@ class MixedAnswer(WorkflowObject):
         return cls(choices=answer.choices, index=index)
 
     def to_phoebus_ballot(self, election, question_num):
-      phoebus_enc = {'a': self.choice.alpha, 'b': self.choice.beta}
+      phoebus_enc = []
+      for choice in self.choices:
+        phoebus_enc.append({'a': choice.alpha, 'b': choice.beta})
       question = election.questions[question_num]
       nr_candidates = len(question['answers'])
       max_choices = nr_candidates
