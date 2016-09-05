@@ -34,15 +34,19 @@ number = int(sys.argv[4]) # zero-indexed
 
 with open(electionIn, 'r') as electionFile:
 	election = json.load(electionFile)
-	
+
+with open(trusteesIn, 'r') as trusteesFile:
+	trustees = json.load(trusteesFile)
+
+if election["public_key"] is not None:
 	nbits = ((int(math.log(long(election["public_key"]["p"]), 2)) - 1) & ~255) + 256
 	cryptosystem = EGCryptoSystem.load(nbits, long(election["public_key"]["p"]), int(election["public_key"]["g"])) # The generator might be a long if it's big? I don't know.
 	
 	public_key = PublicKey(cryptosystem, long(election["public_key"]["y"]))
 	pkf = public_key.get_fingerprint()
-
-with open(trusteesIn, 'r') as trusteesFile:
-	trustees = json.load(trusteesFile)
+else:
+	nbits = ((int(math.log(long(trustees[0]["public_key"]["p"]), 2)) - 1) & ~255) + 256
+	cryptosystem = EGCryptoSystem.load(nbits, long(trustees[0]["public_key"]["p"]), int(trustees[0]["public_key"]["g"]))
 
 with open(secretIn, 'r') as secretFile:
 	secret_json = json.load(secretFile)
