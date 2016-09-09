@@ -1471,6 +1471,9 @@ def voters_add_manual(request, election):
       # launch the verification task
       tasks.cast_vote_verify_and_store.delay(cast_vote_id = cast_vote.id)
       
+      user = get_user(request)
+      election.append_log("Voter %s/%s vote %s manually added by %s/%s" % (voter.voter_type,voter.voter_id,vote_fingerprint,user.user_type,user.user_id))
+      
       return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(voters_list_pretty, args=[election.uuid]))
   
   return render_template(request, "voters_add_manual", {'election': election, 'add_manual_form': add_manual_form})
