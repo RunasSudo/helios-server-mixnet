@@ -927,7 +927,8 @@ def voter_delete(request, election, voter_uuid):
 
   if election.frozen_at:
     # log it
-    election.append_log("Voter %s/%s removed after election frozen" % (voter.voter_type,voter.voter_id))
+    user = get_user(request)
+    election.append_log("Voter %s/%s removed after election frozen by %s/%s" % (voter.voter_type,voter.voter_id,user.user_type,user.user_id))
     
   return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(voters_list_pretty, args=[election.uuid]))
 
