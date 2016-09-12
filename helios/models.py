@@ -622,7 +622,8 @@ class Election(HeliosModel):
     pk = tesu.generate_public_key()
     
     ciphertext = Ciphertext(pk.cryptosystem.get_nbits(), pk.get_fingerprint())
-    ciphertext.append(self.encrypted_tally.tally[q_num][a_num].alpha, self.encrypted_tally.tally[q_num][a_num].beta)
+    for bit in self.encrypted_tally.tally[q_num][a_num]:
+      ciphertext.append(bit.alpha, bit.beta)
     
     trustees = Trustee.get_by_election(self)
     
@@ -655,12 +656,15 @@ class Election(HeliosModel):
       for q_num in xrange(0, len(tally)):
         result_q = []
         for a_num in xrange(0, len(tally[q_num])):
-          combinator = self.get_threshold_combinator(q_num, a_num)
-          for trustee in xrange(0, len(trustees)):
-            combinator.add_partial_decryption(trustee, trustees[trustee].to_plone_partial_decryption(pk, q_num, a_num))
-          bitstream = combinator.decrypt_to_bitstream()
-          bitstream.seek(0)
-          result_q.append(bitstream.get_num(bitstream.get_length()))
+          result_a = []
+          for bit_num in xrange(0, len(tally[q_num][a_num])):
+            combinator = self.get_threshold_combinator(q_num, a_num)
+            for trustee in xrange(0, len(trustees)):
+              combinator.add_partial_decryption(trustee, trustees[trustee].to_plone_partial_decryptions(pk, q_num, a_num)[bit_num])
+            bitstream = combinator.decrypt_to_bitstream()
+            bitstream.seek(0)
+            result_a.append(bitstream.get_num(bitstream.get_length()))
+          result_q.append(result_a)
         result.append(result_q)
       
       self.result = result
@@ -1528,20 +1532,23 @@ class Trustee(HeliosModel):
   def datatype(self):
     return self.election.datatype.replace('Election', 'Trustee')
 
-  def to_plone_partial_decryption(self, pk, q_num, a_num):
+  def to_plone_partial_decryptions(self, pk, q_num, a_num):
     from phoebus.mixnet.threshold.PartialDecryption import PartialDecryption, PartialDecryptionBlock, PartialDecryptionBlockProof
     
-    pd = PartialDecryption(pk.cryptosystem.get_nbits())
-    pdbp = PartialDecryptionBlockProof(
-      self.decryption_proofs[q_num][a_num].challenge,
-      self.decryption_proofs[q_num][a_num].commitment['A'],
-      self.decryption_proofs[q_num][a_num].commitment['B'],
-      self.decryption_proofs[q_num][a_num].response
-    )
-    pdb = PartialDecryptionBlock(self.decryption_factors[q_num][a_num], pdbp)
-    pd.add_partial_decryption_block(pdb)
+    pds = []
+    for bit in xrange(0, len(self.decryption_proofs[q_num][a_num])):
+      pd = PartialDecryption(pk.cryptosystem.get_nbits())
+      pdbp = PartialDecryptionBlockProof(
+        self.decryption_proofs[q_num][a_num][bit].challenge,
+        self.decryption_proofs[q_num][a_num][bit].commitment['A'],
+        self.decryption_proofs[q_num][a_num][bit].commitment['B'],
+        self.decryption_proofs[q_num][a_num][bit].response
+      )
+      pdb = PartialDecryptionBlock(self.decryption_factors[q_num][a_num][bit], pdbp)
+      pd.add_partial_decryption_block(pdb)
+      pds.append(pd)
     
-    return pd
+    return pds
 
   def verify_decryption_proofs(self):
     """
@@ -1559,12 +1566,16 @@ class Trustee(HeliosModel):
       tally = self.election.encrypted_tally.tally
       for q_num in xrange(0, len(tally)):
         for a_num in xrange(0, len(tally[q_num])):
-          combinator = self.election.get_threshold_combinator(q_num, a_num)
-          
-          try:
-            combinator.add_partial_decryption(index, self.to_plone_partial_decryption(pk, q_num, a_num)) # this verifies the decryption
-          except Exception as e:
-            return False
+          pds = self.to_plone_partial_decryptions(pk, q_num, a_num)
+          for bit_num in xrange(0, len(pds)):
+            combinator = self.election.get_threshold_combinator(q_num, a_num)
+            
+            #try:
+            #  combinator.add_partial_decryption(index, self.to_plone_partial_decryption(pk, q_num, a_num)) # this verifies the decryption
+            #except Exception as e:
+            #  raise e
+            #  return False
+            combinator.add_partial_decryption(index, pds[bit_num]) # this verifies the decryption
       
       return True
   
