@@ -81,7 +81,7 @@ def calcQuota(candidates, numSeats):
 	if '-hb' in args.quota:
 		return totalVote(candidates) / (numSeats + 1)
 	if '-droop' in args.quota:
-		return (totalVote(candidates) / (numSeats + 1) + 1).__floor__()
+		return Fraction((totalVote(candidates) / (numSeats + 1) + 1).__floor__())
 
 def hasQuota(candidate, quota):
 	global args
@@ -130,7 +130,7 @@ def countVotes(ballots, candidates, numSeats, fast):
 		
 		remainingCandidates = sorted(remainingCandidates, key=lambda k: k.ctvv, reverse=True)
 		for candidate in remainingCandidates:
-			if candidates not in provisionallyElected and hasQuota(candidate, quota):
+			if candidate not in provisionallyElected and hasQuota(candidate, quota):
 				print("**** {} provisionally elected".format(candidate.name))
 				provisionallyElected.append(candidate)
 		
