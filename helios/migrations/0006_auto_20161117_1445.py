@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('helios', '0002_castvote_cast_ip'),
+        ('helios', '0005_auto_20160703_2302'),
     ]
 
     operations = [

@@ -1355,6 +1355,7 @@ class CastVote(HeliosModel):
   
   # auditing purposes, like too many votes from the same IP, if it isn't expected
   cast_ip = models.GenericIPAddressField(null=True)
+  browser_fingerprint = models.CharField(max_length=131072, null=True) #128k of storage
 
   @property
   def datatype(self):

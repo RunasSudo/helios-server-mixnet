@@ -10,6 +10,7 @@ This is a fork of [Ben Adida's Helios server](https://github.com/benadida/helios
   * A drag-and-drop interface for STV is implemented, and a standalone counter.
 * Optional reddit authentication support.
 * Improved support for password authentication.
+* Browser fingerprinting support.
 * Group voting ticket support.
   * Input candidates using the format `Name/Party/1`, where the candidates are sorted within the GVT by the number (can be a decimal).
 

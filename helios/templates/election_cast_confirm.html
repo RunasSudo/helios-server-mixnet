@@ -1,6 +1,11 @@
 {% extends TEMPLATE_BASE %}
 {% block title %}Confirm Vote{% endblock %}
 
+{% block js %}
+<script language="javascript" src="/static/helios/js/fingerprint2-1.4.2.min.js"></script>
+<script language="javascript" src="/static/helios/helios/jquery.json.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <script language="javascript">
 $(document).ready(function() {
@@ -10,6 +15,11 @@ $(document).ready(function() {
 function show_waiting() {
   $('#all_forms').hide();
   $('#waiting_div').show();
+  
+  new Fingerprint2().get(function(result, components){
+    document.getElementById('browser_fingerprint').value = $.toJSON(components);
+    document.getElementById('cast_confirm_form').submit();
+  });
 }
 
 // FIXME: set this to false once it's clear how to set it back to true

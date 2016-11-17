@@ -2,8 +2,9 @@
   {% if not election.voting_has_stopped %}
 
 <div id="cast_form">
-<form id="cast_confirm_form" method="post" action="" onsubmit="show_waiting()">
+<form id="cast_confirm_form" method="post" action="" onsubmit="show_waiting(); return false;">
     <input type="hidden" name="csrf_token" value="{{csrf_token}}" />
+    <input type="hidden" name="browser_fingerprint" id="browser_fingerprint" value="" />
     
 {% if status_update_label %}
 <div class="round" style="background: #eee; padding: 10px; border: 1px dashed #888;">
@@ -17,6 +18,10 @@
 {% endif %}
 
 You are logged in as <u>{{voter.display_html_big|safe}}</u><br /><br />
+
+<p>
+    By casting this ballot, Helios will collect information about your computer and browser, including your IP address and browser fingerprint. This information will not be divulged to any third parties except with due cause in the process of investigating election fraud. If you do not consent to this information being collected, do not cast a ballot.
+</p>
 
     <button type="submit" class="large">CAST this ballot</button>
     <span style="font-size:0.8em;"><br />You can cast as many ballots as you want.<br />Only the last one counts.</span>

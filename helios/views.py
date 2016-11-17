@@ -769,7 +769,9 @@ def one_election_cast_confirm(request, election):
     # bring back to the confirmation page to let him know
     if not voter:
       return HttpResponseRedirect(settings.SECURE_URL_HOST + reverse(one_election_cast_confirm, args=[election.uuid]))
-    
+
+    cast_vote.browser_fingerprint = request.POST['browser_fingerprint'][:131072]
+
     # don't store the vote in the voter's data structure until verification
     cast_vote.save()
 
