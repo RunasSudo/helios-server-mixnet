@@ -81,7 +81,8 @@ for question in ballots:
 	
 	for ballot in question["answers"]:
 		ciphertext = Ciphertext(nbits, pkf)
-		ciphertext.append(long(ballot["choice"]["alpha"]), long(ballot["choice"]["beta"]))
+		for choice in ballot["choices"]:
+			ciphertext.append(long(choice["alpha"]), long(choice["beta"]))
 		
 		partial_decryption = threshold_key.generate_partial_decryption(ciphertext)
 		
@@ -90,12 +91,12 @@ for question in ballots:
 	partial_decryptions.append(partial_decryption_q)
 
 # Convert to Helios format
-decryption_factors = [[str(decryption[0].value) for decryption in question] for question in partial_decryptions]
-decryption_proofs = [[{
-	"challenge": str(decryption[0].proof.c),
-	"commitment": {"A": str(decryption[0].proof.a), "B": str(decryption[0].proof.b)},
-	"response": str(decryption[0].proof.t)
-} for decryption in question] for question in partial_decryptions]
+decryption_factors = [[[str(v.value) for v in decryption] for decryption in question] for question in partial_decryptions]
+decryption_proofs = [[[{
+	"challenge": str(decryption[k].proof.c),
+	"commitment": {"A": str(decryption[k].proof.a), "B": str(decryption[k].proof.b)},
+	"response": str(decryption[k].proof.t)
+} for k in xrange(0, decryption.get_length())] for decryption in question] for question in partial_decryptions]
 
 print(json.dumps({
 	"decryption_factors": decryption_factors,
