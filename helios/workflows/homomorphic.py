@@ -275,7 +275,7 @@ class Tally(WorkflowObject):
 
     if election:
       self.init_election(election)
-      self.tally = [[0 for a in q['answers']] for q in self.questions]
+      self.tally = [[[0] for a in q['answers']] for q in self.questions]
     else:
       self.questions = None
       self.public_key = None
@@ -313,7 +313,8 @@ class Tally(WorkflowObject):
         # do the homomorphic addition into the tally
         enc_vote_choice = encrypted_vote.encrypted_answers[question_num].choices[answer_num]
         enc_vote_choice.pk = self.public_key
-        self.tally[question_num][answer_num] = encrypted_vote.encrypted_answers[question_num].choices[answer_num] * self.tally[question_num][answer_num]
+        #import pdb; pdb.set_trace()
+        self.tally[question_num][answer_num][0] = encrypted_vote.encrypted_answers[question_num].choices[answer_num] * self.tally[question_num][answer_num][0]
 
     self.num_tallied += 1
 
@@ -333,7 +334,7 @@ class Tally(WorkflowObject):
 
       for answer_num, answer in enumerate(answers):
         # do decryption and proof of it
-        dec_factor, proof = sk.decryption_factor_and_proof(self.tally[question_num][answer_num])
+        dec_factor, proof = sk.decryption_factor_and_proof(self.tally[question_num][answer_num][0])
 
         # look up appropriate discrete log
         # this is the string conversion
@@ -366,7 +367,7 @@ class Tally(WorkflowObject):
 
       for answer_num in range(len(answers)):
         # do decryption and proof of it
-        plaintext, proof = sk.prove_decryption(self.tally[question_num][answer_num])
+        plaintext, proof = sk.prove_decryption(self.tally[question_num][answer_num][0])
 
         # look up appropriate discrete log
         question_tally.append(discrete_logs[plaintext])
@@ -419,7 +420,7 @@ class Tally(WorkflowObject):
       for a_num, a in enumerate(q):
         # coalesce the decryption factors into one list
         dec_factor_list = [df[q_num][a_num] for df in decryption_factors]
-        raw_value = self.tally[q_num][a_num].decrypt(dec_factor_list, public_key)
+        raw_value = self.tally[q_num][a_num][0].decrypt(dec_factor_list, public_key)
         
         q_result.append(dlog_table.lookup(raw_value))
 

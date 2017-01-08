@@ -984,11 +984,19 @@ class Election(HeliosModel):
       return ", ".join([self.questions[q]['answers'][x] for x in k])
     results = []
     for q in xrange(0, len(self.questions)):
-      counter = Counter([pretty_answer(q, k) for k in self.result_choices(question=q)])
-      result = {}
-      result['counter'] = dict(counter)
-      result['question'] = self.questions[q]['question']
-      results.append(result)
+      if self.questions[q]['choice_type'] == 'stv':
+        counter = Counter([pretty_answer(q, k) for k in self.result_choices(question=q)])
+        result = {}
+        result['counter'] = dict(counter)
+        result['question'] = self.questions[q]['question']
+        results.append(result)
+      else:
+        counter = {self.questions[q]['answers'][a]: self.result[q][a][0] - 1 for a in xrange(len(self.questions[q]['answers']))}
+        result = {}
+        result['counter'] = counter
+        result['question'] = self.questions[q]['question']
+        results.append(result)
+        
     return results
   
   ##

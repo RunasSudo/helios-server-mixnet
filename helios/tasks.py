@@ -105,7 +105,7 @@ error: %s
         election.save()
         return
 
-    if election.mixing_finished and election.has_helios_trustee():
+    if (election.mixing_finished or election.workflow_type == 'homomorphic') and election.has_helios_trustee():
         election_notify_admin.delay(election_id = election_id,
                                 subject = "encrypted tally computed",
                                 body = """
