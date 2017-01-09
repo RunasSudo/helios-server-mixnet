@@ -331,10 +331,8 @@ class Election(HeliosModel):
     else:
       results = []
       for result in self.result[question]:
-        if 2 in result:
-          results.append([result.index(2)])
-        else:
-          results.append([])
+        choices = [choice for choice in xrange(len(result)) if result[choice] == 2]
+        results.append(choices)
       
       return results
 
@@ -984,13 +982,16 @@ class Election(HeliosModel):
       return ", ".join([self.questions[q]['answers'][x] for x in k])
     results = []
     for q in xrange(0, len(self.questions)):
-      if self.questions[q]['choice_type'] == 'stv':
-        counter = Counter([pretty_answer(q, k) for k in self.result_choices(question=q)])
+      if self.workflow_type == 'mixnet':
+        if self.questions[q]['choice_type'] == 'stv':
+          counter = Counter([pretty_answer(q, k) for k in self.result_choices(question=q)])
+        else:
+          counter = Counter([self.questions[q]['answers'][c] for k in self.result_choices(question=q) for c in k])
         result = {}
         result['counter'] = dict(counter)
         result['question'] = self.questions[q]['question']
         results.append(result)
-      else:
+      elif self.workflow_type == 'homomorphic':
         counter = {self.questions[q]['answers'][a]: self.result[q][a][0] - 1 for a in xrange(len(self.questions[q]['answers']))}
         result = {}
         result['counter'] = counter
