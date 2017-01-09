@@ -1,5 +1,7 @@
 # Helios Election System with mixnet support
 
+<a href="https://www.reddit.com/user/jb567"><img src="https://cdn.rawgit.com/RunasSudo/e2a9f6e5655a9124918b4854ccc7f530/raw/16c3eab14a42a5366bd5369f53c55deefc7f4602/badge.svg"></a>
+
 Helios is an end-to-end verifiable voting system.
 
 This is a fork of [Ben Adida's Helios server](https://github.com/benadida/helios-server), with support for mixnets using code pulled in from [Zeus](https://github.com/grnet/zeus), and support for threshold decryption, but without the other changes made in Zeus, and with some other minor changes.
