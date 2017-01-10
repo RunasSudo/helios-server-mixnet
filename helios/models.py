@@ -212,7 +212,7 @@ class Election(HeliosModel):
   )
 
   election_type = models.CharField(max_length=250, null=False, default='election', choices = ELECTION_TYPES)
-  workflow_type = models.CharField(max_length=250, null=False, default='homomorphic',
+  workflow_type = models.CharField(max_length=250, null=False, default='mixnet',
       choices = WORKFLOW_TYPES)
   private_p = models.BooleanField(default=False, null=False)
 
