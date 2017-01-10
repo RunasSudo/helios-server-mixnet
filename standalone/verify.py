@@ -43,7 +43,7 @@ from mixnet.threshold.ThresholdEncryptionCommitment import ThresholdEncryptionCo
 from mixnet.threshold.ThresholdEncryptionSetUp import ThresholdEncryptionSetUp
 from mixnet.threshold.ThresholdPublicKey import ThresholdPublicKey
 
-import hashlib, itertools, json, math, urllib2
+import hashlib, itertools, json, math, urllib2, sys, traceback
 
 def get_file(loc_remote, loc_local=None):
 	global args
@@ -55,21 +55,47 @@ def get_file(loc_remote, loc_local=None):
 	else:
 		return urllib2.urlopen(args.location + loc_remote).read()
 
-class VerificationException(Exception):
-	pass
+verificationProblems = []
 
 class statusCheck:
-	def __init__(self, status):
+	def __init__(self, status, parent=None):
+		self.problems = []
+		self.status = status
+		self.parent = parent
+		self.onLinePart = True
+		
+		if self.parent and self.parent.onLinePart:
+			print() # Finish parent status line
+			self.parent.onLinePart = False
 		print(status, end="")
+		sys.stdout.flush()
 	def __enter__(self):
-		return
-	def __exit__(self, type, value, traceback):
+		return self
+	def __exit__(self, type, value, tb):
 		if value:
-			print(": FAIL")
+			self.fail(str(value))
+			traceback.print_tb(tb)
+		
+		if len(self.problems) > 0:
+			print(self.status + ": FAIL") # New line
 		else:
-			print(": OK")
+			if self.onLinePart:
+				print(": OK") # Finish status line
+			else:
+				print(self.status + ": OK") # New line
+	
+	def fail(self, message, propagated=False):
+		if not propagated:
+			if self.onLinePart:
+				print() # Finish status line
+				self.onLinePart = False
+			print(message)
+			verificationProblems.append(self.status + ': ' + message)
+		self.problems.append(message)
+		if self.parent:
+			self.parent.fail(message, True)
 
-with statusCheck("Getting election data"):
+with statusCheck("Getting election data") as sc:
 	# Election
 	election = json.loads(get_file(""))
 	numQuestions = len(election['questions'])
@@ -99,87 +125,89 @@ with statusCheck("Getting election data"):
 # Verify mixes
 for i in xrange(0, numMixnets):
 	index = numMixnets - i - 1
-	for q in xrange(0, numQuestions):
-		with statusCheck("Verifying mix " + str(index) + " question " + str(q)):
-			proof = ShufflingProof.from_dict(mixnets[index][1][q], pk, nbits)
-			
-			orig = CiphertextCollection(pk)
-			if i == 0:
-				for ballot in ballots:
-					ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
-					for block in ballot["vote"]["answers"][q]["choices"]:
-						ciphertext.append(long(block["alpha"]), long(block["beta"]))
-					orig.add_ciphertext(ciphertext)
-			else:
-				for ballot in mixnets[index + 1][0][q]["answers"]:
-					ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
+	with statusCheck("Verifying mix " + str(index)) as sc:
+		for q in xrange(0, numQuestions):
+			with statusCheck("Verifying mix " + str(index) + " question " + str(q), sc) as sc2:
+				proof = ShufflingProof.from_dict(mixnets[index][1][q], pk, nbits)
+				
+				orig = CiphertextCollection(pk)
+				if i == 0:
+					for ballot in ballots:
+						ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
+						for block in ballot["vote"]["answers"][q]["choices"]:
+							ciphertext.append(long(block["alpha"]), long(block["beta"]))
+						orig.add_ciphertext(ciphertext)
+				else:
+					for ballot in mixnets[index + 1][0][q]["answers"]:
+						ciphertext = Ciphertext(nbits, orig._pk_fingerprint)
+						for block in ballot["choices"]:
+							ciphertext.append(long(block["alpha"]), long(block["beta"]))
+						orig.add_ciphertext(ciphertext)
+				
+				shuf = CiphertextCollection(pk)
+				for ballot in mixnets[index][0][q]["answers"]:
+					ciphertext = Ciphertext(nbits, shuf._pk_fingerprint)
 					for block in ballot["choices"]:
 						ciphertext.append(long(block["alpha"]), long(block["beta"]))
-					orig.add_ciphertext(ciphertext)
-			
-			shuf = CiphertextCollection(pk)
-			for ballot in mixnets[index][0][q]["answers"]:
-				ciphertext = Ciphertext(nbits, shuf._pk_fingerprint)
-				for block in ballot["choices"]:
-					ciphertext.append(long(block["alpha"]), long(block["beta"]))
-				shuf.add_ciphertext(ciphertext)
-			
-			# Check the challenge ourselves to provide a more informative error message
-			expected_challenge = proof._generate_challenge(orig, shuf)
-			if proof._challenge != expected_challenge:
-				raise VerificationException("Challenge is wrong")
-			
-			# Do the maths
-			if not proof.verify(orig, shuf):
-				raise VerificationException("Shuffle failed to prove")
+					shuf.add_ciphertext(ciphertext)
+				
+				# Check the challenge ourselves to provide a more informative error message
+				expected_challenge = proof._generate_challenge(orig, shuf)
+				if proof._challenge != expected_challenge:
+					sc2.fail("Challenge is wrong")
+				
+				# Do the maths
+				if not proof.verify(orig, shuf):
+					sc2.fail("Shuffle failed to prove")
 
 # Verify decryptions
 if trusteeThreshold <= 0:
 	for q in xrange(0, numQuestions):
-		ballots = mixnets[0][0][q]["answers"]
-		for i in xrange(0, len(ballots)):
-			print("Verifying decryptions for question " + str(q) + " ballot " + str(i))
-			ballot = ballots[i]
-			result = [long(x) for x in results[q][i]]
+		with statusCheck("Verifying decryptions for question " + str(index)) as sc:
+			ballots = mixnets[0][0][q]["answers"]
+			for i in xrange(0, len(ballots)):
+				with statusCheck("Verifying decryptions for question " + str(q) + " ballot " + str(i), sc) as sc2:
+					ballot = ballots[i]
+					result = [long(x) for x in results[q][i]]
+					
+					for block in xrange(0, len(ballot["choices"])):
+						with statusCheck("Verifying decryptions for question " + str(q) + " ballot " + str(i) + " block " + str(block), sc2) as sc3:
+							decryption_factor_combination = 1L
+							
+							P = cryptosystem.get_prime()
+							
+							for j in xrange(0, len(trustees)):
+								with statusCheck("Verifying decryptions for question " + str(q) + " ballot " + str(i) + " block " + str(block) + " by trustee " + str(j), sc3) as sc4:
+									factor = long(trustees[j]["decryption_factors"][q][i][block])
+									proof = trustees[j]["decryption_proofs"][q][i][block]
+									
+									# Check the challenge
+									C = long(proof["challenge"])
+									expected_challenge = int(hashlib.sha1(proof["commitment"]["A"] + "," + proof["commitment"]["B"]).hexdigest(), 16)
+									if C != expected_challenge:
+										sc4.fail("Challenge is wrong")
+									
+									# Do the maths
+									T = long(proof["response"])
+									
+									GT = pow(cryptosystem.get_generator(), T, P)
+									AYC = (long(proof["commitment"]["A"]) * pow(long(trustees[j]["public_key"]["y"]), C, P)) % P
+									if GT != AYC:
+										sc4.fail("g^t != Ay^c (mod p)")
+									
+									AT = pow(long(ballot["choices"][block]["alpha"]), T, P)
+									BFC = (long(proof["commitment"]["B"]) * pow(factor, C, P)) % P
 			
-			for block in xrange(0, len(ballot["choices"])):
-				decryption_factor_combination = 1L
-				
-				P = cryptosystem.get_prime()
-				
-				for j in xrange(0, len(trustees)):
-					with statusCheck("Verifying decryption of block " + str(block) + " by trustee " + str(j)):
-						factor = long(trustees[j]["decryption_factors"][q][i][block])
-						proof = trustees[j]["decryption_proofs"][q][i][block]
-						
-						# Check the challenge
-						C = long(proof["challenge"])
-						expected_challenge = int(hashlib.sha1(proof["commitment"]["A"] + "," + proof["commitment"]["B"]).hexdigest(), 16)
-						if C != expected_challenge:
-							raise VerificationException("Challenge is wrong")
-						
-						# Do the maths
-						T = long(proof["response"])
-						
-						GT = pow(cryptosystem.get_generator(), T, P)
-						AYC = (long(proof["commitment"]["A"]) * pow(long(trustees[j]["public_key"]["y"]), C, P)) % P
-						if GT != AYC:
-							raise VerificationException("g^t != Ay^c (mod p)")
-						
-						AT = pow(long(ballot["choices"][block]["alpha"]), T, P)
-						BFC = (long(proof["commitment"]["B"]) * pow(factor, C, P)) % P
-
-						if AT != BFC:
-							raise VerificationException("alpha^t != B(factor)^c (mod p)")
-						
-						decryption_factor_combination *= factor
-				
-				# Check the claimed decryption
-				decryption_factor_combination *= result[block]
-				
-				if (decryption_factor_combination % P) != (long(ballot["choices"][block]["beta"]) % P):
-					print("FAIL")
-					raise VerificationException("Claimed plaintext doesn't match decryption factors")
+									if AT != BFC:
+										sc4.fail("alpha^t != B(factor)^c (mod p)")
+									
+									decryption_factor_combination *= factor
+							
+							# Check the claimed decryption
+							decryption_factor_combination *= result[block]
+							
+							if (decryption_factor_combination % P) != (long(ballot["choices"][block]["beta"]) % P):
+								sc3.fail("Claimed plaintext doesn't match decryption factors")
 else:
 	# We need a ThresholdPublicKey
 	tesu = ThresholdEncryptionSetUp(cryptosystem, len(trustees), trusteeThreshold)
@@ -202,41 +230,46 @@ else:
 	tpk = tesu.generate_public_key()
 	
 	for q in xrange(0, numQuestions):
-		ballots = mixnets[0][0][q]["answers"]
-		for i in xrange(0, len(ballots)):
-			print("Verifying decryptions for question " + str(q) + " ballot " + str(i))
-			ballot = ballots[i]
-			result = long(results[q][i])
-			
-			ciphertext = Ciphertext(cryptosystem.get_nbits(), tpk.get_fingerprint())
-			ciphertext.append(long(ballot["choice"]["alpha"]), long(ballot["choice"]["beta"]))
-			combinator = ThresholdDecryptionCombinator(tpk, ciphertext, len(trustees), trusteeThreshold)
-			
-			for j in xrange(0, len(trustees)):
-				with statusCheck("Verifying decryption by trustee " + str(j)):
-					factor = long(trustees[j]["decryption_factors"][q][i])
-					proof = trustees[j]["decryption_proofs"][q][i]
+		with statusCheck("Verifying decryptions for question " + str(q)) as sc:
+			ballots = mixnets[0][0][q]["answers"]
+			for i in xrange(0, len(ballots)):
+				with statusCheck("Verifying decryptions for question " + str(q) + " ballot " + str(i), sc) as sc2:
+					ballot = ballots[i]
+					result = long(results[q][i])
 					
-					pd = PartialDecryption(cryptosystem.get_nbits())
-					pdbp = PartialDecryptionBlockProof(
-						long(proof['challenge']),
-						long(proof['commitment']['A']),
-						long(proof['commitment']['B']),
-						long(proof['response'])
-					)
-					pdb = PartialDecryptionBlock(factor, pdbp)
-					pd.add_partial_decryption_block(pdb)
+					ciphertext = Ciphertext(cryptosystem.get_nbits(), tpk.get_fingerprint())
+					ciphertext.append(long(ballot["choice"]["alpha"]), long(ballot["choice"]["beta"]))
+					combinator = ThresholdDecryptionCombinator(tpk, ciphertext, len(trustees), trusteeThreshold)
 					
-					try:
-						combinator.add_partial_decryption(j, pd) # this verifies the decryption
-					except:
-						raise VerificationException("Partial decryption doesn't verify")
-			
-			bitstream = combinator.decrypt_to_bitstream()
-			bitstream.seek(0)
-			if bitstream.get_num(bitstream.get_length()) != result:
-				print("FAIL")
-				raise VerificationException("Claimed plaintext doesn't match decryption factors")
+					for j in xrange(0, len(trustees)):
+						with statusCheck("Verifying decryptions for question " + str(q) + " ballot " + str(i) + " by trustee " + str(j), sc2) as sc3:
+							factor = long(trustees[j]["decryption_factors"][q][i])
+							proof = trustees[j]["decryption_proofs"][q][i]
+							
+							pd = PartialDecryption(cryptosystem.get_nbits())
+							pdbp = PartialDecryptionBlockProof(
+								long(proof['challenge']),
+								long(proof['commitment']['A']),
+								long(proof['commitment']['B']),
+								long(proof['response'])
+							)
+							pdb = PartialDecryptionBlock(factor, pdbp)
+							pd.add_partial_decryption_block(pdb)
+							
+							try:
+								combinator.add_partial_decryption(j, pd) # this verifies the decryption
+							except:
+								sc3.fail("Partial decryption doesn't verify")
+					
+					bitstream = combinator.decrypt_to_bitstream()
+					bitstream.seek(0)
+					if bitstream.get_num(bitstream.get_length()) != result:
+						sc2.fail("Claimed plaintext doesn't match decryption factors")
 
-print("The election has passed validation. The results are:")
-print(results)
+if len(verificationProblems) == 0:
+	print("The election has passed validation. The results are:")
+	print(results)
+else:
+	print("The election failed validation. The problems encountered were:")
+	for problem in verificationProblems:
+		print(problem)
