@@ -503,9 +503,9 @@ UTILS.generate_plaintexts = function(pk, min, max) {
 
 
 HELIOS.EncryptedAnswer = Class.extend({
-  init: function(question, answer, pk, progress, randomness) {    
+  init: function(election, question, answer, pk, progress, randomness) {
     // if nothing in the constructor
-    if (question == null)
+    if (election == null)
       return;
     
     // store answer
@@ -517,7 +517,7 @@ HELIOS.EncryptedAnswer = Class.extend({
     }
 
     // do the encryption
-    var enc_result = this.doEncryption(question, answer, pk, randomness, progress);
+    var enc_result = this.doEncryption(election, question, answer, pk, randomness, progress);
 
     this.choices = enc_result.choices;
     this.randomness = enc_result.randomness;
@@ -526,8 +526,9 @@ HELIOS.EncryptedAnswer = Class.extend({
     this.encryption_proof = enc_result.encryption_proof;    
   },
   
-  doEncryption: function(question, answer, pk, randomness, progress) {
+  doEncryption: function(election, question, answer, pk, randomness, progress) {
     var stv = question.choice_type == "stv" ? true : false;
+    var homomorphic = election.workflow_type == "homomorphic" ? true : false;
     var choices = [];
     var individual_proofs = [];
     var overall_proof = null;
@@ -599,7 +600,7 @@ HELIOS.EncryptedAnswer = Class.extend({
         progress.tick();
     }
     
-    if (generate_new_randomness && question.max != null && !stv) {
+    if (generate_new_randomness && question.max != null && homomorphic) {
       // we also need proof that the whole thing sums up to the right number
       // only if max is non-null, otherwise it's full approval voting
     
@@ -643,8 +644,8 @@ HELIOS.EncryptedAnswer = Class.extend({
   },
   
   // FIXME: should verifyEncryption really generate proofs? Overkill.
-  verifyEncryption: function(question, pk) {
-    var result = this.doEncryption(question, this.answer, pk, this.randomness);
+  verifyEncryption: function(election, question, pk) {
+    var result = this.doEncryption(election, question, this.answer, pk, this.randomness);
 
     // check that we have the same number of ciphertexts
     if (result.choices.length != this.choices.length) {
@@ -764,7 +765,7 @@ HELIOS.EncryptedVote = Class.extend({
       
     // loop through questions
     for (var i=0; i<n_questions; i++) {
-      this.encrypted_answers[i] = new HELIOS.EncryptedAnswer(election.questions[i], answers[i], election.public_key, progress);
+      this.encrypted_answers[i] = new HELIOS.EncryptedAnswer(election, election.questions[i], answers[i], election.public_key, progress);
     }    
   },
 
@@ -781,10 +782,10 @@ HELIOS.EncryptedVote = Class.extend({
     });
   },
   
-  verifyEncryption: function(questions, pk) {
+  verifyEncryption: function(election, questions, pk) {
     var overall_result = true;
     _(this.encrypted_answers).each(function(ea, i) {
-      overall_result = overall_result && ea.verifyEncryption(questions[i], pk);
+      overall_result = overall_result && ea.verifyEncryption(election, questions[i], pk);
     });
     return overall_result;
   },
