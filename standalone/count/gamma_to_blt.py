@@ -16,7 +16,7 @@
 
 # I love the smell of Python 3 in the morning
 
-import utils
+import pyRCV.utils.common, pyRCV.utils.blt, pyRCV.utils.gamma
 import argparse, itertools, json, sys
 
 parser = argparse.ArgumentParser(description='Convert a Helios election result to an OpenSTV blt file.')
@@ -33,7 +33,7 @@ with open(args.election, 'r') as electionFile:
 	
 	candidates = []
 	for candidate in election["questions"][args.question]["answers"]:
-		candidates.append(utils.Candidate(candidate.split("/")[0])) # Just want the name
+		candidates.append(pyRCV.utils.common.Candidate(candidate.split("/")[0])) # Just want the name
 
 with open(args.result, 'r') as resultFile:
 	results = json.load(resultFile)
@@ -43,7 +43,7 @@ with open(args.result, 'r') as resultFile:
 	ballots = []
 	# Preprocess groups
 	for result, group in itertools.groupby(sorted(result_squashed)):
-		preferences = utils.to_absolute_answers(utils.gamma_decode(result, len(candidates)), len(candidates))
-		ballots.append(utils.Ballot([candidates[x] for x in preferences], None, len(list(group))))
+		preferences = pyRCV.utils.gamma.to_absolute_answers(pyRCV.utils.gamma.gamma_decode(result, len(candidates)), len(candidates))
+		ballots.append(pyRCV.utils.common.Ballot([candidates[x] for x in preferences], None, len(list(group))))
 
-utils.writeBLT(ballots, candidates, args.seats)
+pyRCV.utils.blt.writeBLT(ballots, candidates, args.seats)
