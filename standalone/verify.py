@@ -208,7 +208,7 @@ with statusCheck("Verifying decryptions") as sc0:
 										
 										# Check the challenge
 										C = long(proof["challenge"])
-										expected_challenge = int(hashlib.sha1(proof["commitment"]["A"] + "," + proof["commitment"]["B"]).hexdigest(), 16)
+										expected_challenge = int(hashlib.sha1(proof["commitment"]["A"] + "," + proof["commitment"]["B"] + "," + str(P) + str(cryptosystem.get_generator()) + "," + str((P - 1) / 2) + "," + trustees[j]["public_key"]["y"] + "," + ballot["choices"][block]["alpha"] + "," + str(factor)).hexdigest(), 16)
 										if C != expected_challenge:
 											sc4.fail("Challenge is wrong")
 										

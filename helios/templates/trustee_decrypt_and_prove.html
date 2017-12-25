@@ -49,7 +49,7 @@ function decrypt_and_prove_tally(tally, public_key, secret_key) {
             decryption_proofs[q_num][a_num] = [];
             
             $(a_tally).each(function(block_num, block_tally) {
-                var one_choice_result = secret_key.decryptionFactorAndProof(block_tally, ElGamal.fiatshamir_challenge_generator);
+                var one_choice_result = secret_key.decryptionFactorAndProof(block_tally, ElGamal.fiatshamir_strong_challenge_generator);
                 
                 decryption_factors[q_num][a_num][block_num] = one_choice_result.decryption_factor
                 decryption_proofs[q_num][a_num][block_num] = one_choice_result.decryption_proof;

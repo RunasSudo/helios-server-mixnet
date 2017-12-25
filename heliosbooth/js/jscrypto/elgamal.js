@@ -137,7 +137,7 @@ ElGamal.SecretKey = Class.extend({
     
     // the DH tuple we need to prove, given the secret key x, is:
     // g, alpha, y, beta/m
-    var proof = ElGamal.Proof.generate(this.pk.g, ciphertext.alpha, this.x, this.pk.p, this.pk.q, challenge_generator);
+    var proof = ElGamal.Proof.generate(this.pk.g, ciphertext.alpha, this.x, this.pk.p, this.pk.y, this.pk.q, challenge_generator);
     
     return {
       'decryption_factor' : decryption_factor,
@@ -154,7 +154,7 @@ ElGamal.SecretKey = Class.extend({
     var s = this.pk.g.modPow(w, this.pk.p);
     
     // get challenge
-    var challenge = challenge_generator(s);
+    var challenge = challenge_generator(this.pk.p, this.pk.g, this.pk.q, this.pk.y, s);
     
     // compute response = w +  x * challenge
     var response = w.add(this.x.multiply(challenge)).mod(this.pk.q);
@@ -416,9 +416,10 @@ ElGamal.Proof.fromJSONObject = function(d) {
 // challenge generator takes a commitment, whose subvalues are A and B
 // all modulo p, with group order q, which we provide just in case.
 // as it turns out, G and H are not necessary to generate this proof, given that they're implied by x.
-ElGamal.Proof.generate = function(little_g, little_h, x, p, q, challenge_generator) {
+ElGamal.Proof.generate = function(little_g, little_h, x, p, base_power, q, challenge_generator) {
   // generate random w
   var w = Random.getRandomInteger(q);
+  var message_power = little_h.modPow(x, p);
   
   // create a proof instance
   var proof = new ElGamal.Proof();
@@ -428,7 +429,7 @@ ElGamal.Proof.generate = function(little_g, little_h, x, p, q, challenge_generat
   proof.commitment.B = little_h.modPow(w, p);
   
   // Get the challenge from the callback that generates it
-  proof.challenge = challenge_generator(proof.commitment);
+  proof.challenge = challenge_generator(proof.commitment, p, little_g, q, base_power, little_h, message_power);
   
   // Compute response = w + x * challenge
   proof.response = w.add(x.multiply(proof.challenge)).mod(q);
@@ -535,4 +536,34 @@ ElGamal.fiatshamir_challenge_generator = function(commitment) {
 
 ElGamal.fiatshamir_dlog_challenge_generator = function(commitment) {
   return new BigInt(hex_sha1(commitment.toJSONObject()), 16);
+};
+
+ElGamal.fiatshamir_strong_challenge_generator = function(commitment, modulus, generator, order, base_power, message, message_power) {
+  var strings_to_hash = [];
+
+  strings_to_hash[strings_to_hash.length] = commitment.A.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = commitment.B.toJSONObject();
+  
+  // Hash the statement, too - strong Fiat-Shamir
+  strings_to_hash[strings_to_hash.length] = modulus.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = generator.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = order.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = base_power.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = message.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = message_power.toJSONObject();
+  
+  return new BigInt(hex_sha1(strings_to_hash.join(",")), 16);
+};
+
+ElGamal.fiatshamir_strong_dlog_challenge_generator = function(commitment, modulus, generator, order, pub) {
+  var strings_to_hash = [];
+  
+  // Hash the statement, too - strong Fiat-Shamir
+  strings_to_hash[strings_to_hash.length] = commitment.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = modulus.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = generator.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = order.toJSONObject();
+  strings_to_hash[strings_to_hash.length] = pub.toJSONObject();
+  
+  return new BigInt(hex_sha1(strings_to_hash.join(",")), 16);
 };
