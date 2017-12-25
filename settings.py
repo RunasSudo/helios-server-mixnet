@@ -91,10 +91,14 @@ if (get_from_env('SSL', '0') == '1'):
 
 SESSION_COOKIE_HTTPONLY = True
 
-# one week HSTS seems like a good balance for MITM prevention
+# let's go with one year because that's the way to do it now
+STS = False
 if (get_from_env('HSTS', '0') == '1'):
-    SECURE_HSTS_SECONDS = 3600 * 24 * 7
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    STS = True
+    # we're using our own custom middleware now
+    # SECURE_HSTS_SECONDS = 31536000
+    # not doing subdomains for now cause that is not likely to be necessary and can screw things up.
+    # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -111,6 +115,7 @@ MIDDLEWARE_CLASSES = (
 
     # secure a bunch of things
     'djangosecure.middleware.SecurityMiddleware',
+    'helios.security.HSTSMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     # allow cross-origin requests

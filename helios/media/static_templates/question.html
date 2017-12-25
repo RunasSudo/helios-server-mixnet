@@ -4,7 +4,7 @@
 <h4>
 {#if $T.admin_p}[
 {#if $T.question$index > 0}<a href="javascript:question_move_up({$T.question$index});">^</a>]&nbsp;[{#/if}
-<a href="javascript:question_remove({$T.question$index})">x</a>] [<a href="javascript:question_edit({$T.question$index})">edit</a>] {#/if}{$T.question$index + 1}. {$T.question.question} ({$T.question.choice_type}, select between {$T.question.min} and {#if $T.question.max != null}{$T.question.max}{#else}unlimited{#/if} answers, result type {$T.question.result_type}.)</h4>
+<a onclick="return confirm('Are you sure you want to remove this question?');" href="javascript:question_remove({$T.question$index})">x</a>] [<a href="javascript:question_edit({$T.question$index})">edit</a>] {#/if}{$T.question$index + 1}. {$T.question.question} ({$T.question.choice_type}, select between {$T.question.min} and {#if $T.question.max != null}{$T.question.max}{#else}unlimited{#/if} answers, result type {$T.question.result_type}.)</h4>
 <ul>
 {#foreach $T.question.answers as answer}
 <li> {$T.answer}
@@ -17,13 +17,26 @@
 </div>
 <div id="q_edit_{$T.question$index}" style="display:none;">
 <form id="question_edit_{$T.question$index}_form" onsubmit="question_update({$T.question$index}, this); return false;" action="#">
+<input type="hidden" name="choice_type" value="approval" />
 <p>
 <b>{$T.question$index + 1}.</b> &nbsp;&nbsp;&nbsp;Select between &nbsp;&nbsp;
-<input name="min" type="number" style="display: inline; width: 4em;" value="0">
+<select name="min">
+    <option selected>0</option>
+{#for option_index = 1 to 20}
+    <option>{$T.option_index}</option>
+{#/for}
+</select>
 
 &nbsp;&nbsp; and  &nbsp;&nbsp;
 
-<input name="max" type="number" style="display: inline; width: 4em;" value="1">
+<select name="max">
+    <option>0</option>
+    <option selected>1</option>
+{#for option_index = 2 to 50}
+    <option>{$T.option_index}</option>
+{#/for}
+    <option value="">- (approval)</option>
+</select>
 
 &nbsp;&nbsp;
 answers.
@@ -65,13 +78,26 @@ no questions yet
 {#if $T.admin_p}
 <h4>Add a Question:</h4>
 <form id="question_form" onsubmit="question_add(this); return false;" action="#">
+<input type="hidden" name="choice_type" value="approval" />
 <p>
 &nbsp;&nbsp;&nbsp;Select between &nbsp;&nbsp;
-<input name="min" type="number" style="display: inline; width: 4em;" value="0">
+<select name="min">
+    <option selected>0</option>
+{#for option_index = 1 to 20}
+    <option>{$T.option_index}</option>
+{#/for}
+</select>
 
 &nbsp;&nbsp; and  &nbsp;&nbsp;
 
-<input name="max" type="number" style="display: inline; width: 4em;" value="1">
+<select name="max">
+    <option>0</option>
+    <option selected>1</option>
+{#for option_index = 2 to 50}
+    <option>{$T.option_index}</option>
+{#/for}
+    <option value="">- (approval)</option>
+</select>
 
 &nbsp;&nbsp;
 answers.
