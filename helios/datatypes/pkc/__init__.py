@@ -1,3 +1,0 @@
-"""
-Public Key Cryptography datatypes
-"""

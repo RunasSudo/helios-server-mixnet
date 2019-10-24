@@ -1,8 +1,0 @@
-Dear {{voter.name}},
-
-{{custom_message|safe}}
-
-Election Link: {{election_vote_url}}
-
---
-Helios
